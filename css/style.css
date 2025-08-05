@@ -1,0 +1,37 @@
+/* style.css */
+
+body {
+    font-family: 'Segoe UI', sans-serif;
+    background-color: #f9f9f9;
+}
+
+header {
+    background: #fff;
+    border-bottom: 2px solid #ddd;
+}
+
+.card img {
+    height: 250px;
+    object-fit: cover;
+}
+
+.card-title {
+    font-weight: 600;
+}
+
+.btn-outline-dark {
+    transition: 0.3s;
+}
+
+.btn-outline-dark:hover {
+    background-color: #000;
+    color: #fff;
+}
+
+footer {
+    border-top: 2px solid #eee;
+}
+
+.badge {
+    font-size: 14px;
+}

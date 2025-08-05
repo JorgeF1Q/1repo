@@ -1,11 +1,95 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
+    <title>Joyería Brillante</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    
+    <!-- Estilos y librerías -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+    <link href="css/style.css" rel="stylesheet">
+    <!-- Bootstrap CSS -->
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+
 </head>
 <body>
-    <h1>Hello World</h1>
+    <!-- Topbar -->
+    <div class="container-fluid bg-dark text-white p-2 d-flex justify-content-between">
+        <div>
+            <span><i class="fas fa-phone-alt"></i> +502 5555 5555</span>
+        </div>
+        <div>
+            <a href="cart.html" class="text-white">
+                <i class="fas fa-shopping-cart"></i>
+                <span class="cart-count badge bg-light text-dark rounded-circle px-2">0</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Encabezado -->
+    <header class="text-center py-4 bg-light">
+        <h1 class="text-uppercase">Joyería Brillante</h1>
+        <p>Descubre nuestras joyas exclusivas</p>
+    </header>
+
+    <!-- Productos -->
+    <main class="container py-4">
+        <div class="row">
+            <!-- Producto 1 -->
+            <div class="col-md-4 mb-4">
+                <div class="card">
+                    <img src="img/anillo1.jpg" class="card-img-top" alt="Anillo Oro">
+                    <div class="card-body text-center">
+                        <h5 class="card-title">Anillo de Oro</h5>
+                        <p class="card-text">Q950.00</p>
+                        <button class="btn btn-outline-dark add-to-cart" data-id="1" data-name="Anillo de Oro" data-price="950.00">
+                            <i class="fa fa-shopping-cart"></i> Agregar
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Producto 2 -->
+            <div class="col-md-4 mb-4">
+                <div class="card">
+                    <img src="img/collar1.jpg" class="card-img-top" alt="Collar Plata">
+                    <div class="card-body text-center">
+                        <h5 class="card-title">Collar de Plata</h5>
+                        <p class="card-text">Q670.00</p>
+                        <button class="btn btn-outline-dark add-to-cart" data-id="2" data-name="Collar de Plata" data-price="670.00">
+                            <i class="fa fa-shopping-cart"></i> Agregar
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Producto 3 -->
+            <div class="col-md-4 mb-4">
+                <div class="card">
+                    <img src="img/aretes1.jpg" class="card-img-top" alt="Aretes Diamante">
+                    <div class="card-body text-center">
+                        <h5 class="card-title">Aretes de Diamante</h5>
+                        <p class="card-text">Q1350.00</p>
+                        <button class="btn btn-outline-dark add-to-cart" data-id="3" data-name="Aretes de Diamante" data-price="1350.00">
+                            <i class="fa fa-shopping-cart"></i> Agregar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-white text-center py-3">
+        <p>&copy; 2025 Joyería Brillante. Todos los derechos reservados.</p>
+    </footer>
+
+
+    <!-- Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Scripts -->
+    <script src="js/main.js"></script>
 </body>
 </html>

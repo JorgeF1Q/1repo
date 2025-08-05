@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Checkout - Joyería Brillante</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Bootstrap + Estilos -->
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <link href="css/style.css" rel="stylesheet">
+    <style>
+        .checkout-container {
+            max-width: 500px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 10px;
+        }
+
+        .form-control {
+            display: inline-block;
+            width: auto;
+            min-width: 250px;
+        }
+
+        label {
+            font-weight: 500;
+        }
+
+        .btn-confirm {
+            background-color: #FFD700;
+            border: none;
+            color: black;
+        }
+
+        .btn-confirm:hover {
+            background-color: #e5c100;
+        }
+
+        .extra-fields {
+            display: none;
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <div class="container py-5">
+        <div class="checkout-container shadow-sm">
+            <h3 class="text-center mb-4">Finalizar Compra</h3>
+            <form id="checkout-form" class="text-center">
+                <div class="form-group">
+                    <label>Nombre completo</label><br>
+                    <input type="text" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Correo electrónico</label><br>
+                    <input type="email" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Dirección de entrega</label><br>
+                    <input type="text" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Método de pago</label><br>
+                    <select class="form-control" id="payment-method" required>
+                        <option value="entrega">Pago contra entrega</option>
+                        <option value="tarjeta">Tarjeta de crédito</option>
+                        <option value="transferencia">Transferencia bancaria</option>
+                    </select>
+                </div>
+
+                <!-- Tarjeta de crédito -->
+                <div id="card-fields" class="extra-fields">
+                    <div class="form-group mt-3">
+                        <label>Número de tarjeta</label><br>
+                        <input type="text" class="form-control" placeholder="1234 5678 9012 3456">
+                    </div>
+                    <div class="form-group">
+                        <label>Fecha de expiración</label><br>
+                        <input type="month" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>CVV</label><br>
+                        <input type="text" class="form-control" placeholder="123">
+                    </div>
+                </div>
+
+                <!-- Transferencia bancaria -->
+                <div id="transfer-fields" class="extra-fields">
+                    <div class="form-group mt-3">
+                        <label>Documento/Referencia de pago</label><br>
+                        <input type="text" class="form-control" placeholder="Número de recibo o comprobante">
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-confirm mt-4">Confirmar pedido</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Script de lógica -->
+    <script>
+        const paymentMethod = document.getElementById("payment-method");
+        const cardFields = document.getElementById("card-fields");
+        const transferFields = document.getElementById("transfer-fields");
+
+        paymentMethod.addEventListener("change", function () {
+            const value = this.value;
+
+            // Oculta todo
+            cardFields.style.display = "none";
+            transferFields.style.display = "none";
+
+            // Muestra según selección
+            if (value === "tarjeta") {
+                cardFields.style.display = "block";
+            } else if (value === "transferencia") {
+                transferFields.style.display = "block";
+            }
+        });
+
+        document.getElementById("checkout-form").addEventListener("submit", function (e) {
+            e.preventDefault();
+            alert("¡Gracias por tu compra!");
+            localStorage.removeItem("cart");
+            window.location.href = "index.html";
+        });
+    </script>
+</body>
+</html>

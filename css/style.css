@@ -86,3 +86,35 @@ footer {
         .extra-fields {
             display: none;
         }
+
+ .qty-btn {
+            width: 35px;
+            height: 35px;
+            background-color: #FFD700;
+            border: none;
+            font-weight: bold;
+        }
+
+        .remove-btn {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+        }
+
+        .summary-box {
+            background: #fff;
+            padding: 20px;
+            border: 1px solid #ddd;
+        }
+
+        .coupon-input {
+            border: 1px solid #ccc;
+            padding: 6px 10px;
+        }
+
+        .btn-yellow {
+            background-color: #FFD700;
+            border: none;
+            color: #000;
+        }

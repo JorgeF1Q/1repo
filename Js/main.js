@@ -24,6 +24,27 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     });
 
+    const filterButtons = document.querySelectorAll('#categoryFilters button');
+    const products = document.querySelectorAll('.product');
+
+    filterButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            const category = button.getAttribute('data-filter');
+
+            filterButtons.forEach(btn => btn.classList.remove('active'));
+            button.classList.add('active');
+
+            products.forEach(product => {
+                const productCategory = product.getAttribute('data-category');
+                if (category === 'all' || productCategory === category) {
+                    product.style.display = '';
+                } else {
+                    product.style.display = 'none';
+                }
+            });
+        });
+    });
+
     updateCartCount(); // al cargar la página
 });
 

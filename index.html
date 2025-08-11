@@ -13,17 +13,26 @@
 
 </head>
 <body>
-    <!-- Topbar -->
-    <div class="container-fluid bg-dark text-white p-2 d-flex justify-content-between">
-        <div>
+    <!-- Navegación -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <a class="navbar-brand" href="#">Joyería Mares</a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ml-auto">
+                <li class="nav-item"><a class="nav-link" href="index.html">Inicio</a></li>
+                <li class="nav-item"><a class="nav-link" href="shop.html">Tienda</a></li>
+                <li class="nav-item"><a class="nav-link" href="contact.html">Contacto</a></li>
+                <li class="nav-item">
+                    <a href="cart.html" class="nav-link">
+                        <i class="fas fa-shopping-cart"></i>
+                        <span class="cart-count badge badge-light text-dark rounded-circle px-2">0</span>
+                    </a>
+                </li>
+            </ul>
         </div>
-        <div>
-            <a href="cart.html" class="text-white">
-                <i class="fas fa-shopping-cart"></i>
-                <span class="cart-count badge bg-light text-dark rounded-circle px-2">0</span>
-            </a>
-        </div>
-    </div>
+    </nav>
 
     <!-- Encabezado -->
     <header class="text-center py-4 bg-light">
@@ -31,11 +40,21 @@
         <p>Descubre nuestras joyas exclusivas</p>
     </header>
 
+    <!-- Filtros -->
+    <div class="container my-4">
+        <div class="btn-group d-flex justify-content-center" id="categoryFilters">
+            <button class="btn btn-outline-dark active" data-filter="all">Todos</button>
+            <button class="btn btn-outline-dark" data-filter="anillos">Anillos</button>
+            <button class="btn btn-outline-dark" data-filter="collares">Collares</button>
+            <button class="btn btn-outline-dark" data-filter="aretes">Aretes</button>
+        </div>
+    </div>
+
     <!-- Productos -->
     <main class="container py-4">
         <div class="row">
             <!-- Producto 1 -->
-            <div class="col-md-4 mb-4">
+            <div class="col-md-4 mb-4 product" data-category="anillos">
                 <div class="card">
                     <img src="img/anillo1.jpg" class="card-img-top" alt="Anillo Oro">
                     <div class="card-body text-center">
@@ -49,7 +68,7 @@
             </div>
 
             <!-- Producto 2 -->
-            <div class="col-md-4 mb-4">
+            <div class="col-md-4 mb-4 product" data-category="collares">
                 <div class="card">
                     <img src="img/collar1.jpg" class="card-img-top" alt="Collar Plata">
                     <div class="card-body text-center">
@@ -63,7 +82,7 @@
             </div>
 
             <!-- Producto 3 -->
-            <div class="col-md-4 mb-4">
+            <div class="col-md-4 mb-4 product" data-category="aretes">
                 <div class="card">
                     <img src="img/aretes1.jpg" class="card-img-top" alt="Aretes Diamante">
                     <div class="card-body text-center">
@@ -92,6 +111,6 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
 
     <!-- Scripts -->
-    <script src="js/main.js"></script>
+    <script src="Js/main.js"></script>
 </body>
 </html>

@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dashboard Joyería Mares — HTML</title>
+  <!-- TailwindCSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <style>
+    /* Suaves sombras y bordes redondeados consistentes */
+    .card { @apply bg-white rounded-xl shadow-lg border border-gray-100; }
+    .chip { @apply px-2 py-1 rounded-full text-xs font-medium; }
+  </style>
+</head>
+<body class="min-h-screen bg-gray-50 p-6">
+  <!-- Header -->
+  <header class="mb-8">
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 class="text-3xl font-bold text-gray-900">Dashboard Joyería Mares</h1>
+        <p class="text-gray-600 mt-2">Panel de control y análisis de ventas</p>
+      </div>
+      <div class="flex gap-3">
+        <button id="btnExport" class="flex items-center px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+          <i data-lucide="download" class="w-4 h-4 mr-2"></i>
+          Exportar
+        </button>
+        <button id="btnRefresh" class="flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
+          <i data-lucide="refresh-cw" class="w-4 h-4 mr-2"></i>
+          Actualizar
+        </button>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <nav class="flex gap-1 mt-6 bg-gray-100 p-1 rounded-lg w-fit">
+      <button data-tab="overview" class="tab-btn px-4 py-2 rounded-md text-sm font-medium transition-colors bg-white text-purple-600 shadow">Resumen General</button>
+      <button data-tab="sales" class="tab-btn px-4 py-2 rounded-md text-sm font-medium transition-colors text-gray-600 hover:text-gray-900">Ventas</button>
+      <button data-tab="customers" class="tab-btn px-4 py-2 rounded-md text-sm font-medium transition-colors text-gray-600 hover:text-gray-900">Clientes</button>
+      <button data-tab="products" class="tab-btn px-4 py-2 rounded-md text-sm font-medium transition-colors text-gray-600 hover:text-gray-900">Productos</button>
+    </nav>
+  </header>
+
+  <!-- ===== OVERVIEW ===== -->
+  <section id="tab-overview">
+    <!-- Métricas principales -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div class="card p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600 mb-1">Ventas Totales</p>
+            <p id="metricTotalSales" class="text-2xl font-bold text-gray-900">$0</p>
+            <div id="metricSalesGrowth" class="flex items-center mt-1 text-sm"></div>
+          </div>
+          <div class="p-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg">
+            <i data-lucide="dollar-sign" class="w-6 h-6 text-white"></i>
+          </div>
+        </div>
+      </div>
+      <div class="card p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600 mb-1">Órdenes</p>
+            <p id="metricTotalOrders" class="text-2xl font-bold text-gray-900">0</p>
+            <div id="metricOrdersGrowth" class="flex items-center mt-1 text-sm"></div>
+          </div>
+          <div class="p-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg">
+            <i data-lucide="shopping-cart" class="w-6 h-6 text-white"></i>
+          </div>
+        </div>
+      </div>
+      <div class="card p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600 mb-1">Clientes Únicos</p>
+            <p id="metricTotalClients" class="text-2xl font-bold text-gray-900">0</p>
+          </div>
+          <div class="p-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg">
+            <i data-lucide="users" class="w-6 h-6 text-white"></i>
+          </div>
+        </div>
+      </div>
+      <div class="card p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600 mb-1">Valor Promedio Orden</p>
+            <p id="metricAOV" class="text-2xl font-bold text-gray-900">$0</p>
+          </div>
+          <div class="p-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg">
+            <i data-lucide="package" class="w-6 h-6 text-white"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Gráficos principales -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+      <div class="card p-6">
+        <div class="flex items-center justify-between mb-6">
+          <h3 class="text-lg font-semibold text-gray-900">Tendencia de Ventas</h3>
+          <select id="periodSelect" class="border border-gray-300 rounded-lg px-3 py-1 text-sm">
+            <option value="3m">3 meses</option>
+            <option value="6m">6 meses</option>
+            <option value="9m" selected>9 meses</option>
+            <option value="12m">12 meses</option>
+          </select>
+        </div>
+        <div class="h-[300px]"><canvas id="chartTrend"></canvas></div>
+      </div>
+      <div class="card p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-6">Ventas por Categoría</h3>
+        <div class="h-[300px]"><canvas id="chartCategories"></canvas></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== SALES ===== -->
+  <section id="tab-sales" class="hidden">
+    <div class="card p-6 mb-6">
+      <h3 class="text-lg font-semibold text-gray-900 mb-6">Análisis Detallado de Ventas</h3>
+      <div class="h-[400px]"><canvas id="chartSalesBars"></canvas></div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div class="card p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Top 5 Categorías</h3>
+        <div id="topCategories" class="space-y-3"></div>
+      </div>
+      <div class="card p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Métricas de Rendimiento</h3>
+        <div class="space-y-4">
+          <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+            <span class="text-gray-600">Tasa de Conversión</span>
+            <span class="font-semibold text-green-600">3.2%</span>
+          </div>
+          <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+            <span class="text-gray-600">Margen de Beneficio</span>
+            <span class="font-semibold text-blue-600">65%</span>
+          </div>
+          <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+            <span class="text-gray-600">Ticket Promedio</span>
+            <span id="metricAOV2" class="font-semibold text-purple-600">$0</span>
+          </div>
+          <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+            <span class="text-gray-600">Productos Devueltos</span>
+            <span class="font-semibold text-red-600">2.1%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== CUSTOMERS ===== -->
+  <section id="tab-customers" class="hidden">
+    <div class="card p-6 mb-6">
+      <h3 class="text-lg font-semibold text-gray-900 mb-6">Top Clientes</h3>
+      <div class="overflow-x-auto">
+        <table class="w-full">
+          <thead>
+            <tr class="border-b border-gray-200">
+              <th class="text-left py-3 px-4 font-medium text-gray-700">Cliente</th>
+              <th class="text-left py-3 px-4 font-medium text-gray-700">Compras</th>
+              <th class="text-left py-3 px-4 font-medium text-gray-700">Total Gastado</th>
+              <th class="text-left py-3 px-4 font-medium text-gray-700">Última Compra</th>
+            </tr>
+          </thead>
+          <tbody id="tblTopClients"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div class="card p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Segmentación de Clientes</h3>
+        <div class="space-y-3">
+          <div class="flex justify-between"><span>Clientes VIP (&gt;$2000)</span><span class="font-semibold">12</span></div>
+          <div class="flex justify-between"><span>Clientes Regulares</span><span class="font-semibold">28</span></div>
+          <div class="flex justify-between"><span>Clientes Ocasionales</span><span class="font-semibold">15</span></div>
+        </div>
+      </div>
+      <div class="card p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Retención de Clientes</h3>
+        <div class="text-center">
+          <div class="text-3xl font-bold text-green-600 mb-2">78%</div>
+          <p class="text-gray-600">Tasa de retención</p>
+        </div>
+      </div>
+      <div class="card p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Satisfacción</h3>
+        <div class="text-center">
+          <div class="flex items-center justify-center mb-2">
+            <i data-lucide="star" class="w-5 h-5 text-yellow-400 fill-yellow-400"></i>
+            <span class="text-3xl font-bold ml-2">4.8</span>
+          </div>
+          <p class="text-gray-600">Calificación promedio</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== PRODUCTS ===== -->
+  <section id="tab-products" class="hidden">
+    <div class="card p-6 mb-6">
+      <h3 class="text-lg font-semibold text-gray-900 mb-6">Órdenes Recientes</h3>
+      <div class="overflow-x-auto">
+        <table class="w-full">
+          <thead>
+            <tr class="border-b border-gray-200">
+              <th class="text-left py-3 px-4 font-medium text-gray-700">Orden ID</th>
+              <th class="text-left py-3 px-4 font-medium text-gray-700">Cliente</th>
+              <th class="text-left py-3 px-4 font-medium text-gray-700">Producto</th>
+              <th class="text-left py-3 px-4 font-medium text-gray-700">Monto</th>
+              <th class="text-left py-3 px-4 font-medium text-gray-700">Estado</th>
+              <th class="text-left py-3 px-4 font-medium text-gray-700">Fecha</th>
+            </tr>
+          </thead>
+          <tbody id="tblOrders"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div class="card p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Inventario por Categoría</h3>
+        <div class="h-[250px]"><canvas id="chartInventory"></canvas></div>
+      </div>
+      <div class="card p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Alertas de Inventario</h3>
+        <div class="space-y-3" id="alertsInventory"></div>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    // ===== Datos (tomados del componente original) =====
+    const salesData = [
+      { month: 'Ene', ventas: 15600, ordenes: 24, clientes: 18 },
+      { month: 'Feb', ventas: 18200, ordenes: 28, clientes: 22 },
+      { month: 'Mar', ventas: 22400, ordenes: 35, clientes: 28 },
+      { month: 'Apr', ventas: 19800, ordenes: 31, clientes: 25 },
+      { month: 'May', ventas: 25600, ordenes: 41, clientes: 33 },
+      { month: 'Jun', ventas: 28900, ordenes: 45, clientes: 36 },
+      { month: 'Jul', ventas: 31200, ordenes: 48, clientes: 39 },
+      { month: 'Ago', ventas: 29500, ordenes: 46, clientes: 37 },
+      { month: 'Sep', ventas: 33800, ordenes: 52, clientes: 42 }
+    ];
+
+    const productCategories = [
+      { name: 'Anillos', value: 35, ventas: 89400, color: '#8884d8' },
+      { name: 'Collares', value: 25, ventas: 64200, color: '#82ca9d' },
+      { name: 'Pulseras', value: 20, ventas: 51300, color: '#ffc658' },
+      { name: 'Aretes', value: 15, ventas: 38400, color: '#ff7300' },
+      { name: 'Relojes', value: 5, ventas: 12800, color: '#8dd1e1' }
+    ];
+
+    const topClients = [
+      { nombre: 'María González', compras: 8, total: 4200, ultimaCompra: '2025-09-25' },
+      { nombre: 'Ana Rodríguez', compras: 6, total: 3800, ultimaCompra: '2025-09-23' },
+      { nombre: 'Carmen López', compras: 5, total: 3200, ultimaCompra: '2025-09-20' },
+      { nombre: 'Isabel Martín', compras: 4, total: 2900, ultimaCompra: '2025-09-18' },
+      { nombre: 'Laura Pérez', compras: 3, total: 2400, ultimaCompra: '2025-09-15' }
+    ];
+
+    const recentOrders = [
+      { id: '#ORD-001', cliente: 'María González', producto: 'Anillo Oro 18k', monto: 650, estado: 'Completado', fecha: '2025-09-26' },
+      { id: '#ORD-002', cliente: 'Carlos Ruiz', producto: 'Collar Plata 925', monto: 280, estado: 'Procesando', fecha: '2025-09-26' },
+      { id: '#ORD-003', cliente: 'Ana Rodríguez', producto: 'Pulsera Diamantes', monto: 1200, estado: 'Enviado', fecha: '2025-09-25' },
+      { id: '#ORD-004', cliente: 'Luis García', producto: 'Aretes Perlas', monto: 450, estado: 'Completado', fecha: '2025-09-25' },
+      { id: '#ORD-005', cliente: 'Carmen López', producto: 'Reloj Oro Rosa', monto: 890, estado: 'Completado', fecha: '2025-09-24' }
+    ];
+
+    // ===== Utilidades =====
+    const fmtCurrency = (n) => new Intl.NumberFormat('es-GT', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n);
+    const fmtNumber = (n) => new Intl.NumberFormat('es-GT').format(n);
+
+    function calcMetrics() {
+      const totalSales = salesData.reduce((s, x) => s + x.ventas, 0);
+      const totalOrders = salesData.reduce((s, x) => s + x.ordenes, 0);
+      const totalClients = salesData.reduce((s, x) => Math.max(s, x.clientes), 0);
+      const avgOrderValue = totalSales / totalOrders;
+      const last = salesData[salesData.length - 1];
+      const prev = salesData[salesData.length - 2];
+      const salesGrowth = ((last.ventas - prev.ventas) / prev.ventas) * 100;
+      const ordersGrowth = ((last.ordenes - prev.ordenes) / prev.ordenes) * 100;
+      return { totalSales, totalOrders, totalClients, avgOrderValue, salesGrowth, ordersGrowth };
+    }
+
+    function renderMetricGrowth(el, value) {
+      el.innerHTML = '';
+      const icon = document.createElement('i');
+      icon.setAttribute('data-lucide', value >= 0 ? 'trending-up' : 'trending-down');
+      icon.className = 'w-4 h-4';
+      const span = document.createElement('span');
+      span.className = 'ml-1';
+      span.textContent = `${Math.abs(value).toFixed(1)}% vs mes anterior`;
+      el.append(icon, span);
+      el.className = `flex items-center mt-1 text-sm ${value >= 0 ? 'text-green-600' : 'text-red-600'}`;
+      lucide.createIcons();
+    }
+
+    // ===== Render Métricas =====
+    const { totalSales, totalOrders, totalClients, avgOrderValue, salesGrowth, ordersGrowth } = calcMetrics();
+    document.getElementById('metricTotalSales').textContent = fmtCurrency(totalSales);
+    renderMetricGrowth(document.getElementById('metricSalesGrowth'), salesGrowth);
+    document.getElementById('metricTotalOrders').textContent = fmtNumber(totalOrders);
+    renderMetricGrowth(document.getElementById('metricOrdersGrowth'), ordersGrowth);
+    document.getElementById('metricTotalClients').textContent = fmtNumber(totalClients);
+    document.getElementById('metricAOV').textContent = fmtCurrency(avgOrderValue);
+    document.getElementById('metricAOV2').textContent = fmtCurrency(avgOrderValue);
+
+    // ===== Charts =====
+    let chartTrend, chartCategories, chartSalesBars, chartInventory;
+
+    function buildTrendData(period) {
+      const map = { '3m': 3, '6m': 6, '9m': 9, '12m': 12 };
+      const n = map[period] || 9;
+      const slice = salesData.slice(-n);
+      return {
+        labels: slice.map(x => x.month),
+        datasets: [{
+          label: 'Ventas ($)',
+          data: slice.map(x => x.ventas),
+          fill: true,
+          tension: 0.35,
+          borderWidth: 2,
+          pointRadius: 3,
+          backgroundColor: ctx => {
+            const { chart } = ctx; const { ctx: c } = chart; const g = c.createLinearGradient(0, 0, 0, 300);
+            g.addColorStop(0, 'rgba(136, 132, 216, 0.35)');
+            g.addColorStop(1, 'rgba(136, 132, 216, 0.05)');
+            return g;
+          },
+          borderColor: '#8884d8'
+        }]
+      };
+    }
+
+    function createTrend(period) {
+      const ctx = document.getElementById('chartTrend');
+      if (chartTrend) chartTrend.destroy();
+      chartTrend = new Chart(ctx, {
+        type: 'line',
+        data: buildTrendData(period),
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            tooltip: { callbacks: { label: (item) => `${fmtCurrency(item.parsed.y)}` } },
+            legend: { display: false }
+          },
+          scales: {
+            x: { grid: { display: true, drawBorder: false } },
+            y: { grid: { display: true, drawBorder: false } }
+          }
+        }
+      });
+    }
+
+    function createCategories() {
+      const ctx = document.getElementById('chartCategories');
+      if (chartCategories) chartCategories.destroy();
+      chartCategories = new Chart(ctx, {
+        type: 'pie',
+        data: {
+          labels: productCategories.map(c => `${c.name} (${c.value}%)`),
+          datasets: [{
+            data: productCategories.map(c => c.value),
+            backgroundColor: productCategories.map(c => c.color),
+            borderWidth: 0
+          }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+      });
+    }
+
+    function createSalesBars() {
+      const ctx = document.getElementById('chartSalesBars');
+      if (chartSalesBars) chartSalesBars.destroy();
+      chartSalesBars = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: salesData.map(x => x.month),
+          datasets: [
+            { label: 'Ventas ($)', data: salesData.map(x => x.ventas), backgroundColor: '#8884d8' },
+            { label: 'Órdenes', data: salesData.map(x => x.ordenes), backgroundColor: '#82ca9d' }
+          ]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom' } },
+          scales: { x: { stacked: false }, y: { beginAtZero: true } }
+        }
+      });
+    }
+
+    function createInventory() {
+      const ctx = document.getElementById('chartInventory');
+      if (chartInventory) chartInventory.destroy();
+      const data = productCategories.slice(0, 4);
+      chartInventory = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: data.map(x => x.name),
+          datasets: [{ label: 'Stock (unidades)', data: data.map(x => x.value), backgroundColor: '#8884d8' }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+      });
+    }
+
+    // Inicializar charts de Overview
+    createTrend('9m');
+    createCategories();
+
+    // Contenido dinámico de "Top 5 Categorías"
+    const topC = document.getElementById('topCategories');
+    topC.innerHTML = productCategories.map(cat => `
+      <div class="flex items-center justify-between">
+        <div class="flex items-center">
+          <div class="w-4 h-4 rounded-full mr-3" style="background:${cat.color}"></div>
+          <span class="font-medium">${cat.name}</span>
+        </div>
+        <div class="text-right">
+          <div class="font-semibold">${fmtCurrency(cat.ventas)}</div>
+          <div class="text-sm text-gray-500">${cat.value}%</div>
+        </div>
+      </div>
+    `).join('');
+
+    // Tabla Top Clientes
+    const tblTop = document.getElementById('tblTopClients');
+    tblTop.innerHTML = topClients.map(c => `
+      <tr class="border-b border-gray-100 hover:bg-gray-50">
+        <td class="py-3 px-4">
+          <div class="flex items-center">
+            <div class="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-semibold mr-3">${c.nombre.charAt(0)}</div>
+            ${c.nombre}
+          </div>
+        </td>
+        <td class="py-3 px-4">${c.compras}</td>
+        <td class="py-3 px-4 font-semibold">${fmtCurrency(c.total)}</td>
+        <td class="py-3 px-4 text-gray-600">${c.ultimaCompra}</td>
+      </tr>
+    `).join('');
+
+    // Tabla Órdenes + Badges de estado
+    function statusBadge(status) {
+      const map = {
+        'Completado': 'bg-green-100 text-green-800',
+        'Procesando': 'bg-yellow-100 text-yellow-800',
+        'Enviado': 'bg-blue-100 text-blue-800',
+        'Cancelado': 'bg-red-100 text-red-800'
+      };
+      return `<span class="chip ${map[status] || 'bg-gray-100 text-gray-800'}">${status}</span>`;
+    }
+
+    const tblOrders = document.getElementById('tblOrders');
+    tblOrders.innerHTML = recentOrders.map(o => `
+      <tr class="border-b border-gray-100 hover:bg-gray-50">
+        <td class="py-3 px-4 font-mono text-sm">${o.id}</td>
+        <td class="py-3 px-4">${o.cliente}</td>
+        <td class="py-3 px-4">${o.producto}</td>
+        <td class="py-3 px-4 font-semibold">${fmtCurrency(o.monto)}</td>
+        <td class="py-3 px-4">${statusBadge(o.estado)}</td>
+        <td class="py-3 px-4 text-gray-600">${o.fecha}</td>
+      </tr>
+    `).join('');
+
+    // Alertas de inventario (estáticas de demostración)
+    document.getElementById('alertsInventory').innerHTML = `
+      <div class="flex items-center justify-between p-3 bg-red-50 border border-red-200 rounded-lg">
+        <span class="text-red-700">Anillo Diamante Solitario</span>
+        <span class="text-red-600 font-semibold">Stock Bajo: 3</span>
+      </div>
+      <div class="flex items-center justify-between p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+        <span class="text-yellow-700">Collar Perlas Cultivo</span>
+        <span class="text-yellow-600 font-semibold">Stock Medio: 8</span>
+      </div>
+      <div class="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg">
+        <span class="text-green-700">Pulsera Plata 925</span>
+        <span class="text-green-600 font-semibold">Stock OK: 15</span>
+      </div>
+    `;
+
+    // ===== Tab logic =====
+    const tabs = ['overview', 'sales', 'customers', 'products'];
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const key = btn.getAttribute('data-tab');
+        tabs.forEach(t => {
+          document.getElementById(`tab-${t}`).classList.toggle('hidden', t !== key);
+        });
+        // estilos activos
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('bg-white','text-purple-600','shadow'));
+        btn.classList.add('bg-white','text-purple-600','shadow');
+        // crear charts de cada tab si hace falta
+        if (key === 'sales') createSalesBars();
+        if (key === 'products') createInventory();
+      });
+    });
+
+    // Cambiar período del gráfico de tendencia
+    document.getElementById('periodSelect').addEventListener('change', (e) => {
+      createTrend(e.target.value);
+    });
+
+    // Botones (demo)
+    document.getElementById('btnRefresh').addEventListener('click', () => {
+      // En una app real, aquí refrescarías datos del servidor
+      createTrend(document.getElementById('periodSelect').value);
+      createCategories();
+      if (!document.getElementById('tab-sales').classList.contains('hidden')) createSalesBars();
+      if (!document.getElementById('tab-products').classList.contains('hidden')) createInventory();
+    });
+
+    document.getElementById('btnExport').addEventListener('click', () => {
+      // Export simple del área visible como imagen (canvas principal)
+      const canvas = document.querySelector('#chartTrend');
+      const link = document.createElement('a');
+      link.download = 'ventas_tendencia.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    });
+
+    // Render icons
+    lucide.createIcons();
+  </script>
+</body>
+</html>

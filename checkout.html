@@ -1,106 +1,521 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <title>Checkout - Joyería Mares</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <!-- Bootstrap + Estilos -->
-    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
-    <link href="css/style.css" rel="stylesheet">
+  <meta charset="UTF-8" />
+  <title>Checkout - Joyería Mares</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- Bootstrap + Estilos -->
+  <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="css/style.css" rel="stylesheet" />
+  <style>
+    /* Estilo simple para factura al imprimir */
+    @media print {
+      .no-print { display: none !important; }
+      .invoice {
+        max-width: 800px;
+        margin: 0 auto;
+        font-size: 14px;
+      }
+      .invoice h3 { margin-bottom: .5rem; }
+      .invoice table { width: 100%; border-collapse: collapse; }
+      .invoice th, .invoice td { border: 1px solid #ddd; padding: 6px; }
+      .text-right { text-align: right; }
+    }
+  </style>
 </head>
 <body class="bg-light">
-    <!-- Encabezado con botón a la izquierda -->
-    <header class="d-flex justify-content-start p-3">
-        <a href="index.html" class="btn btn-outline-secondary">
-            &larr; Volver al inicio
-        </a>
-    </header>
+  <!-- Encabezado -->
+  <header class="d-flex justify-content-start p-3 no-print">
+    <a href="index.html" class="btn btn-outline-secondary">&larr; Volver al inicio</a>
+  </header>
 
-    <div class="container py-5">
-        <div class="checkout-container shadow-sm">
-            <h3 class="text-center mb-4">Finalizar Compra</h3>
-            <form id="checkout-form" class="text-center">
-                <div class="form-group">
-                    <label>Nombre completo</label><br>
-                    <input type="text" class="form-control" required>
-                </div>
-                <div class="form-group">
-                    <label>Correo electrónico</label><br>
-                    <input type="email" class="form-control" required>
-                </div>
-                <div class="form-group">
-                    <label>Dirección de entrega</label><br>
-                    <input type="text" class="form-control" required>
-                </div>
-                <div class="form-group">
-                    <label>Método de pago</label><br>
-                    <select class="form-control" id="payment-method" required>
-                        <option value="entrega">Pago contra entrega</option>
-                        <option value="tarjeta">Tarjeta de crédito</option>
-                        <option value="transferencia">Transferencia bancaria</option>
-                    </select>
-                </div>
+  <div class="container py-5">
+    <div class="row">
+      <!-- Columna: formulario -->
+      <div class="col-lg-7 mb-4">
+        <div class="checkout-container shadow-sm p-4 bg-white">
+          <h3 class="text-center mb-4">Finalizar Compra</h3>
 
-                <!-- Tarjeta de crédito -->
-                <div id="card-fields" class="extra-fields">
-                    <div class="form-group mt-3">
-                        <label>Número de tarjeta</label><br>
-                        <input type="text" class="form-control" placeholder="1234 5678 9012 3456">
-                    </div>
-                    <div class="form-group">
-                        <label>Fecha de expiración</label><br>
-                        <input type="month" class="form-control">
-                    </div>
-                    <div class="form-group">
-                        <label>CVV</label><br>
-                        <input type="text" class="form-control" placeholder="123">
-                    </div>
-                </div>
+          <form id="checkout-form" autocomplete="on">
+            <div class="form-group">
+              <label>Nombre completo</label>
+              <input id="f_nombre" type="text" class="form-control" required />
+            </div>
+            <div class="form-group">
+              <label>Correo electrónico</label>
+              <input id="f_email" type="email" class="form-control" required />
+            </div>
+            <div class="form-group">
+              <label>Dirección de entrega</label>
+              <input id="f_dir" type="text" class="form-control" required />
+            </div>
 
-                <!-- Transferencia bancaria -->
-                <div id="transfer-fields" class="extra-fields">
-                    <div class="form-group mt-3">
-                        <label>Documento/Referencia de pago</label><br>
-                        <input type="text" class="form-control" placeholder="Número de recibo o comprobante">
-                    </div>
-                </div>
+            <div class="form-group">
+              <label>Método de pago</label>
+              <select class="form-control" id="payment-method" required>
+                <option value="entrega">Pago contra entrega</option>
+                <option value="tarjeta">Tarjeta de crédito</option>
+                <option value="transferencia">Transferencia bancaria</option>
+                <option value="paypal">PayPal</option>
+              </select>
+            </div>
 
-                <button type="submit" class="btn btn-confirm mt-4">Confirmar pedido</button>
-            </form>
+            <!-- Tarjeta -->
+            <div id="card-fields" class="extra-fields" style="display:none">
+              <div class="form-group mt-3">
+                <label>Número de tarjeta</label>
+                <input id="f_card" type="text" class="form-control" placeholder="1234 5678 9012 3456" />
+              </div>
+              <div class="form-group">
+                <label>Fecha de expiración</label>
+                <input id="f_exp" type="month" class="form-control" />
+              </div>
+              <div class="form-group">
+                <label>CVV</label>
+                <input id="f_cvv" type="text" class="form-control" placeholder="123" />
+              </div>
+            </div>
 
-             
+            <!-- Transferencia -->
+            <div id="transfer-fields" class="extra-fields" style="display:none">
+              <div class="form-group mt-3">
+                <label>Documento/Referencia de pago</label>
+                <input id="f_ref" type="text" class="form-control" placeholder="Número de recibo o comprobante" />
+              </div>
+            </div>
+
+            <!-- PayPal (solo info) -->
+            <div id="paypal-hint" class="alert alert-info mt-3" style="display:none">
+              Al confirmar el pedido te llevaremos a PayPal para completar el pago.
+            </div>
+
+            <button type="submit" class="btn btn-confirm btn-dark mt-3 w-100 no-print">Confirmar pedido</button>
+          </form>
         </div>
-       
+      </div>
+
+      <!-- Columna: cupón + resumen -->
+      <div class="col-lg-5">
+        <div class="shadow-sm p-4 bg-white">
+          <h4 class="mb-3">Cupón</h4>
+          <div class="input-group mb-2">
+            <input id="coupon-code" type="text" class="form-control" placeholder="Código de cupón" />
+            <div class="input-group-append">
+              <button id="apply-coupon" class="btn btn-outline-dark" type="button">Aplicar</button>
+            </div>
+          </div>
+          <small id="coupon-msg" class="text-muted d-block mb-3"></small>
+
+          <h4 class="mt-4 mb-3">Resumen</h4>
+          <ul class="list-group mb-3">
+            <li class="list-group-item d-flex justify-content-between">
+              <span>Subtotal</span> <strong>Q<span id="sum-subtotal">0.00</span></strong>
+            </li>
+            <li class="list-group-item d-flex justify-content-between">
+              <span>Envío</span> <strong>Q<span id="sum-shipping">0.00</span></strong>
+            </li>
+            <li class="list-group-item d-flex justify-content-between">
+              <span>Descuento</span> <strong class="text-success">-Q<span id="sum-discount">0.00</span></strong>
+            </li>
+            <li class="list-group-item d-flex justify-content-between">
+              <span>Total</span> <strong>Q<span id="sum-total">0.00</span></strong>
+            </li>
+          </ul>
+
+          <!-- Acciones de factura -->
+          <div class="d-grid gap-2">
+            <button id="btn-print" class="btn btn-outline-dark w-100 no-print" type="button">Imprimir factura</button>
+            <button id="btn-email" class="btn btn-outline-dark w-100 no-print" type="button">Enviar factura por correo</button>
+          </div>
+        </div>
+      </div>
     </div>
+  </div>
 
-    <!-- Script de lógica -->
-    <script>
-        const paymentMethod = document.getElementById("payment-method");
-        const cardFields = document.getElementById("card-fields");
-        const transferFields = document.getElementById("transfer-fields");
+  <!-- Contenedor para generar HTML de factura (se llena con JS) -->
+  <div id="invoice-root" class="d-none"></div>
 
-        paymentMethod.addEventListener("change", function () {
-            const value = this.value;
+  <!-- Lógica -->
+  <script type="module">
+    import { createOrder, validateCoupon as apiValidateCoupon, API_BASE } from './js/api.js';
 
-            // Oculta todo
-            cardFields.style.display = "none";
-            transferFields.style.display = "none";
+    // ======= Config =======
+    const SHIPPING = 10;
+    const PAYPAL_USER = 'eeytm';
+    const PAYPAL_BASE = `https://paypal.me/${PAYPAL_USER}`;
+    const FORMSUBMIT_ACTION = 'https://formsubmit.co/fjorgemario4@gmail.com';
 
-            // Muestra según selección
-            if (value === "tarjeta") {
-                cardFields.style.display = "block";
-            } else if (value === "transferencia") {
-                transferFields.style.display = "block";
-            }
-        });
+    // ======= Storage Keys =======
+    const CART_KEY        = 'cart';
+    const SNAPSHOT_KEY    = 'checkout_cart_snapshot';
+    const SUMMARY_KEY     = 'checkout_summary';
+    const COUPON_KEY      = 'coupon';
+    const FORM_KEY        = 'checkout_form_data';
+    const AWAIT_PAYPAL    = 'awaiting_paypal';
 
-        document.getElementById("checkout-form").addEventListener("submit", function (e) {
-            e.preventDefault();
-            alert("¡Gracias por tu compra!");
-            localStorage.removeItem("cart");
-            window.location.href = "index.html";
-        });
-    </script>
+    // ======= Helpers =======
+    const q = (sel, ctx=document) => ctx.querySelector(sel);
+    const money = (n) => Number(n || 0).toFixed(2);
+    const save = (k,v)=>localStorage.setItem(k, JSON.stringify(v));
+    const read = (k, fb=null)=>{ try{ return JSON.parse(localStorage.getItem(k)) ?? fb }catch{ return fb } };
+
+    function readEffectiveCart(){
+      const cart = read(CART_KEY, []);
+      if (cart && cart.length) return cart;
+      return read(SNAPSHOT_KEY, []); // fallback
+    }
+
+    function paintSummary({subtotal, shipping, discount, total}) {
+      q('#sum-subtotal').textContent = money(subtotal);
+      q('#sum-shipping').textContent = money(shipping);
+      q('#sum-discount').textContent = money(discount);
+      q('#sum-total').textContent = money(total);
+    }
+
+    async function validateCoupon(code, subtotal) {
+      return apiValidateCoupon(code, subtotal);
+    }
+
+    async function recalcWithCoupon(couponObj, subtotal) {
+      if (!couponObj?.codigo) return { discount: 0, coupon: null, msg: '' };
+      const data = await validateCoupon(couponObj.codigo, subtotal);
+      if (!data.valid) return { discount: 0, coupon: null, msg: data.message || 'Cupón inválido' };
+      const discount = Number(data.descuento || 0);
+      const coupon = { codigo: data.codigo, tipo: data.tipo, valor: Number(data.valor), descuento: discount };
+      return { discount, coupon, msg: 'Cupón válido aplicado ✅' };
+    }
+
+    // ======= Restaurar resumen + cupón =======
+    async function initSummaryOnLoad() {
+      const cart = readEffectiveCart();
+      const subtotal = cart.reduce((s,i)=> s + Number(i.price)*Number(i.quantity||0), 0);
+
+      let coupon = read(COUPON_KEY, null);
+      let discount = Number(coupon?.descuento || 0);
+      let msg = '';
+
+      if (coupon?.codigo && !coupon.descuento) {
+        try {
+          const res = await recalcWithCoupon(coupon, subtotal);
+          discount = res.discount; coupon = res.coupon; msg = res.msg;
+          save(COUPON_KEY, coupon);
+        } catch { discount = 0; coupon = null; }
+      }
+
+      const total = Math.max(0, subtotal + SHIPPING - discount);
+      const summary = { subtotal, shipping: SHIPPING, discount, total };
+      paintSummary(summary);
+      save(SUMMARY_KEY, summary);
+
+      if (coupon?.codigo) {
+        q('#coupon-code').value = coupon.codigo;
+        q('#coupon-msg').textContent = msg || 'Cupón restaurado del carrito ✅';
+      } else {
+        q('#coupon-msg').textContent = '';
+      }
+    }
+
+    // ======= Cupón (en checkout) =======
+    q('#apply-coupon').addEventListener('click', async () => {
+      const cart = readEffectiveCart();
+      const subtotal = cart.reduce((s,i)=> s + Number(i.price)*Number(i.quantity||0), 0);
+      if (subtotal <= 0) { q('#coupon-msg').textContent = 'Tu carrito está vacío'; return; }
+
+      const code = q('#coupon-code').value.trim();
+      if (!code) { q('#coupon-msg').textContent = 'Ingresa un código de cupón.'; return; }
+
+      try {
+        const data = await validateCoupon(code, subtotal);
+        if (!data.valid) {
+          save(COUPON_KEY, null);
+          const summary = { subtotal, shipping: SHIPPING, discount: 0, total: subtotal + SHIPPING };
+          paintSummary(summary); save(SUMMARY_KEY, summary);
+          q('#coupon-msg').textContent = data.message || 'Cupón inválido'; return;
+        }
+        const discount = Number(data.descuento || 0);
+        const total = Math.max(0, subtotal + SHIPPING - discount);
+        const coupon = { codigo: data.codigo, tipo: data.tipo, valor: Number(data.valor), descuento: discount };
+        save(COUPON_KEY, coupon);
+        const summary = { subtotal, shipping: SHIPPING, discount, total };
+        paintSummary(summary); save(SUMMARY_KEY, summary);
+        q('#coupon-msg').textContent = 'Cupón válido aplicado ✅';
+      } catch {
+        q('#coupon-msg').textContent = 'Error validando el cupón';
+      }
+    });
+
+    // ======= Autosave del formulario =======
+    const form = document.getElementById('checkout-form');
+    const paymentMethod = document.getElementById('payment-method');
+    const cardFields = document.getElementById('card-fields');
+    const transferFields = document.getElementById('transfer-fields');
+    const paypalHint = document.getElementById('paypal-hint');
+
+    function showByMethod(m){
+      cardFields.style.display = (m==='tarjeta') ? 'block' : 'none';
+      transferFields.style.display = (m==='transferencia') ? 'block' : 'none';
+      paypalHint.style.display = (m==='paypal') ? 'block' : 'none';
+    }
+
+    function restoreForm(){
+      const d = read(FORM_KEY, null);
+      if (!d) return;
+      q('#f_nombre').value = d.nombre || '';
+      q('#f_email').value  = d.email || '';
+      q('#f_dir').value    = d.dir || '';
+      paymentMethod.value  = d.metodo || 'entrega';
+      q('#f_card').value   = d.card || '';
+      q('#f_exp').value    = d.exp  || '';
+      q('#f_cvv').value    = d.cvv  || '';
+      q('#f_ref').value    = d.ref  || '';
+      showByMethod(paymentMethod.value);
+    }
+    function autosave(){
+      const data = {
+        nombre: q('#f_nombre').value.trim(),
+        email : q('#f_email').value.trim(),
+        dir   : q('#f_dir').value.trim(),
+        metodo: paymentMethod.value,
+        card  : q('#f_card').value.trim(),
+        exp   : q('#f_exp').value,
+        cvv   : q('#f_cvv').value.trim(),
+        ref   : q('#f_ref').value.trim()
+      };
+      save(FORM_KEY, data);
+    }
+    ['input','change','keyup'].forEach(ev => form.addEventListener(ev, autosave));
+    paymentMethod.addEventListener('change', ()=> showByMethod(paymentMethod.value));
+
+    /* =============================
+       FACTURA: construcción y envío
+       ============================= */
+
+    function buildInvoiceData(orderId = '') {
+      const cart = readEffectiveCart();
+      const summary = read(SUMMARY_KEY, { subtotal:0, shipping:SHIPPING, discount:0, total:0 });
+      const coupon  = read(COUPON_KEY, null);
+      const form    = read(FORM_KEY, {nombre:'', email:'', dir:'', metodo:'entrega'});
+
+      return {
+        orderId,
+        date: new Date().toLocaleString(),
+        customer: {
+          name: form.nombre || q('#f_nombre').value.trim(),
+          email: form.email || q('#f_email').value.trim(),
+          address: form.dir || q('#f_dir').value.trim(),
+          method: form.metodo || q('#payment-method').value
+        },
+        items: cart.map(i => ({
+          id: i.id, name: i.name, price: Number(i.price), qty: Number(i.quantity),
+          total: Number(i.price) * Number(i.quantity)
+        })),
+        summary,
+        coupon
+      };
+    }
+
+    function buildInvoiceHTML(data){
+      const rows = data.items.map(it => `
+        <tr>
+          <td>${it.name}</td>
+          <td class="text-right">Q ${money(it.price)}</td>
+          <td class="text-right">${it.qty}</td>
+          <td class="text-right">Q ${money(it.total)}</td>
+        </tr>`).join('');
+
+      return `
+        <div class="invoice">
+          <h3>Joyería Mares</h3>
+          <p><strong>Factura</strong> #${data.orderId || '-'} &nbsp; • &nbsp; ${data.date}</p>
+          <hr/>
+          <p>
+            <strong>Cliente:</strong> ${data.customer.name}<br/>
+            <strong>Email:</strong> ${data.customer.email}<br/>
+            <strong>Dirección:</strong> ${data.customer.address}<br/>
+            <strong>Método de pago:</strong> ${data.customer.method}
+          </p>
+          <table>
+            <thead>
+              <tr>
+                <th>Producto</th>
+                <th class="text-right">Precio</th>
+                <th class="text-right">Cant.</th>
+                <th class="text-right">Total</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+            <tfoot>
+              <tr>
+                <td colspan="3" class="text-right"><strong>Subtotal</strong></td>
+                <td class="text-right">Q ${money(data.summary.subtotal)}</td>
+              </tr>
+              <tr>
+                <td colspan="3" class="text-right"><strong>Envío</strong></td>
+                <td class="text-right">Q ${money(data.summary.shipping)}</td>
+              </tr>
+              <tr>
+                <td colspan="3" class="text-right"><strong>Descuento</strong></td>
+                <td class="text-right">-Q ${money(data.summary.discount)}</td>
+              </tr>
+              <tr>
+                <td colspan="3" class="text-right"><strong>Total</strong></td>
+                <td class="text-right"><strong>Q ${money(data.summary.total)}</strong></td>
+              </tr>
+            </tfoot>
+          </table>
+          ${data.coupon?.codigo ? `<p style="margin-top:.5rem"><em>Cupón aplicado:</em> ${data.coupon.codigo}</p>` : ''}
+        </div>
+      `;
+    }
+
+    function printInvoice(orderId = '') {
+      const data = buildInvoiceData(orderId);
+      const html = buildInvoiceHTML(data);
+      const win = window.open('', '_blank');
+      win.document.write(`
+        <html>
+          <head>
+            <title>Factura ${data.orderId || ''}</title>
+            <style>
+              body{font-family:Arial,Helvetica,sans-serif;margin:20px}
+              .invoice h3{margin-bottom:.5rem}
+              table{width:100%;border-collapse:collapse}
+              th,td{border:1px solid #ddd;padding:6px}
+              .text-right{text-align:right}
+            </style>
+          </head>
+          <body>${html}</body>
+        </html>
+      `);
+      win.document.close();
+      win.focus();
+      win.print();
+    }
+
+    function sendInvoiceByEmail(orderId = '') {
+      const data = buildInvoiceData(orderId);
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = FORMSUBMIT_ACTION;
+      form.target = '_blank'; // abre confirmación en nueva pestaña
+      form.className = 'd-none';
+
+      // Config FormSubmit
+      form.appendChild(hidden('_subject', `Factura Joyería Mares #${orderId || '(pendiente)'}`));
+      form.appendChild(hidden('_template', 'table'));
+      form.appendChild(hidden('_captcha', 'false'));
+      // copia para el cliente (si escribió email)
+      if (data.customer.email) form.appendChild(hidden('_cc', data.customer.email));
+
+      // Campos "legibles" (formsubmit arma una tabla con cada input)
+      form.appendChild(hidden('Numero de factura', orderId || '(pendiente)'));
+      form.appendChild(hidden('Fecha', data.date));
+
+      form.appendChild(hidden('Cliente - Nombre', data.customer.name));
+      form.appendChild(hidden('Cliente - Email', data.customer.email));
+      form.appendChild(hidden('Cliente - Dirección', data.customer.address));
+      form.appendChild(hidden('Método de pago', data.customer.method));
+
+      // Items como JSON legible + totales
+      form.appendChild(hidden('Artículos', data.items.map(i => `${i.name} x${i.qty} = Q ${money(i.total)}`).join(' | ')));
+      form.appendChild(hidden('Subtotal', `Q ${money(data.summary.subtotal)}`));
+      form.appendChild(hidden('Envío', `Q ${money(data.summary.shipping)}`));
+      form.appendChild(hidden('Descuento', `Q ${money(data.summary.discount)}`));
+      form.appendChild(hidden('Total', `Q ${money(data.summary.total)}`));
+      if (data.coupon?.codigo) form.appendChild(hidden('Cupón', data.coupon.codigo));
+
+      document.body.appendChild(form);
+      form.submit();
+      setTimeout(() => form.remove(), 5000);
+    }
+    function hidden(name, value){
+      const i = document.createElement('input');
+      i.type='hidden'; i.name=name; i.value=value;
+      return i;
+    }
+
+    // Botones de factura
+    q('#btn-print').addEventListener('click', () => printInvoice());
+    q('#btn-email').addEventListener('click', () => sendInvoiceByEmail());
+
+    // ======= Submit Pedido =======
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const cart = readEffectiveCart();
+      if (!cart.length) { alert('Tu carrito está vacío'); return; }
+
+      const nombre    = q('#f_nombre').value.trim();
+      const email     = q('#f_email').value.trim();
+      const direccion = q('#f_dir').value.trim();
+
+      const metodoPago = paymentMethod.value;
+      const referencia = (metodoPago === 'transferencia')
+        ? (q('#f_ref').value.trim() || '')
+        : (metodoPago === 'tarjeta' ? 'Tarjeta' : (metodoPago === 'paypal' ? 'PayPal' : 'Contra entrega'));
+
+      const detalles = cart.map(i => ({
+        ProductoId: i.id,
+        ProductoNombre: i.name,
+        PrecioUnitario: Number(i.price),
+        Cantidad: Number(i.quantity),
+        TotalLinea: Number(i.price) * Number(i.quantity)
+      }));
+
+      const summary = read(SUMMARY_KEY, { subtotal:0, shipping:SHIPPING, discount:0, total:0 });
+      const coupon  = read(COUPON_KEY, null);
+
+      const payload = {
+        Nombre: nombre,
+        Email: email,
+        Direccion: direccion,
+        MetodoPago: metodoPago,
+        Referencia: referencia,
+        Subtotal: summary.subtotal || 0,
+        Envio: summary.shipping || SHIPPING,
+        Descuento: summary.discount || 0,
+        Total: summary.total || (summary.subtotal + (summary.shipping || SHIPPING) - (summary.discount || 0)),
+        CuponCodigo: coupon?.codigo || null,
+        CupomCodigo: coupon?.codigo || null,
+        Detalles: detalles
+      };
+
+      if (metodoPago === 'paypal') {
+        save(AWAIT_PAYPAL, true);
+        autosave(); save(SUMMARY_KEY, summary); save(COUPON_KEY, coupon); save(SNAPSHOT_KEY, cart);
+        const amount = String((payload.Total || 0).toFixed(2)).replace(',', '.');
+        const paypalUrl = `${PAYPAL_BASE}/${amount}`;
+        window.location.href = paypalUrl;
+        return;
+      }
+
+      try {
+        const resp = await createOrder(payload);
+        const orderId = resp.id || resp.orderId || '';
+        // Ofrecer inmediatamente impresión y envío
+        if (confirm('¡Pedido creado! ¿Deseas imprimir la factura?')) {
+          printInvoice(orderId);
+        }
+        if (confirm('¿Enviar la factura al correo?')) {
+          sendInvoiceByEmail(orderId);
+        }
+        // Limpieza
+        localStorage.removeItem(CART_KEY);
+        localStorage.removeItem(SNAPSHOT_KEY);
+        localStorage.removeItem(COUPON_KEY);
+        localStorage.removeItem(SUMMARY_KEY);
+        localStorage.removeItem(FORM_KEY);
+        localStorage.removeItem(AWAIT_PAYPAL);
+        window.location.href = 'index.html';
+      } catch (err) {
+        alert(err?.message || 'Error al procesar el pedido');
+      }
+    });
+
+    // ======= Init =======
+    restoreForm();
+    await initSummaryOnLoad();
+    showByMethod(paymentMethod.value);
+  </script>
 </body>
 </html>

@@ -177,6 +177,63 @@
       justify-content: center;
     }
 
+    .config-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 24px;
+      margin-top: 24px;
+    }
+
+    .config-card {
+      background: rgba(255, 255, 255, 0.92);
+      border-radius: 20px;
+      padding: 20px;
+      box-shadow: 0 10px 24px rgba(31, 42, 64, 0.12);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .config-card h4 {
+      font-weight: 600;
+      font-size: 1.1rem;
+    }
+
+    .config-card form .form-group {
+      margin-bottom: 12px;
+    }
+
+    .config-card ul {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .config-card ul li {
+      background: rgba(42, 82, 152, 0.08);
+      border-radius: 12px;
+      padding: 10px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .config-card ul li span {
+      flex: 1;
+    }
+
+    .config-card button.btn-link {
+      padding: 0;
+    }
+
+    #usersTable td, #usersTable th {
+      vertical-align: middle;
+    }
+
     .main-area {
       flex: 1;
       display: flex;
@@ -517,18 +574,92 @@
         <section class="content-section" id="section-settings">
           <div class="section-card">
             <h2 class="section-title">Configuración y seguridad</h2>
-            <div class="placeholder-panel">
-              <div class="placeholder-card">
-                <h4>Usuarios y roles</h4>
-                <p>Define accesos por perfil para proteger información sensible y delegar funciones operativas.</p>
+            <div class="config-grid">
+              <div class="config-card">
+                <h4>Roles</h4>
+                <form id="roleForm">
+                  <div class="form-group">
+                    <label for="roleName">Nombre del rol</label>
+                    <input id="roleName" type="text" class="form-control" placeholder="Ej. Admin" required />
+                  </div>
+                  <button class="btn btn-primary btn-block">Crear rol</button>
+                </form>
+                <ul id="rolesList"></ul>
               </div>
-              <div class="placeholder-card">
-                <h4>Preferencias del panel</h4>
-                <p>Personaliza colores, notificaciones y accesos directos a los módulos más utilizados por tu equipo.</p>
+
+              <div class="config-card">
+                <h4>Permisos</h4>
+                <form id="permissionForm">
+                  <div class="form-group">
+                    <label for="permissionName">Nombre del permiso</label>
+                    <input id="permissionName" type="text" class="form-control" placeholder="Ej. gestionar_productos" required />
+                  </div>
+                  <button class="btn btn-primary btn-block">Crear permiso</button>
+                </form>
+                <ul id="permissionsList"></ul>
               </div>
-              <div class="placeholder-card">
-                <h4>Auditoría</h4>
-                <p>Monitorea cambios realizados en el sistema y mantén un historial completo de modificaciones.</p>
+
+              <div class="config-card">
+                <h4>Asignar permisos a roles</h4>
+                <form id="rolePermissionForm">
+                  <div class="form-group">
+                    <label for="roleSelect">Rol</label>
+                    <select id="roleSelect" class="form-control" required></select>
+                  </div>
+                  <div class="form-group">
+                    <label for="permissionSelect">Permiso</label>
+                    <select id="permissionSelect" class="form-control" required></select>
+                  </div>
+                  <button class="btn btn-primary btn-block">Asignar</button>
+                </form>
+                <ul id="rolePermissionsList"></ul>
+              </div>
+
+              <div class="config-card" style="grid-column: 1 / -1;">
+                <h4>Usuarios</h4>
+                <form id="userForm" class="mb-3">
+                  <div class="form-row">
+                    <div class="form-group col-md-3">
+                      <label for="userName">Nombre</label>
+                      <input id="userName" type="text" class="form-control" required />
+                    </div>
+                    <div class="form-group col-md-3">
+                      <label for="userEmail">Correo</label>
+                      <input id="userEmail" type="email" class="form-control" required />
+                    </div>
+                    <div class="form-group col-md-3">
+                      <label for="userPassword">Contraseña</label>
+                      <input id="userPassword" type="password" class="form-control" required />
+                    </div>
+                    <div class="form-group col-md-2">
+                      <label for="userRole">Rol</label>
+                      <select id="userRole" class="form-control" required></select>
+                    </div>
+                    <div class="form-group col-md-1">
+                      <label for="userStatus">Estado</label>
+                      <select id="userStatus" class="form-control">
+                        <option value="activo">Activo</option>
+                        <option value="inactivo">Inactivo</option>
+                      </select>
+                    </div>
+                  </div>
+                  <button class="btn btn-success">Crear usuario</button>
+                </form>
+
+                <div class="table-responsive">
+                  <table id="usersTable" class="table table-sm table-striped mb-0">
+                    <thead>
+                      <tr>
+                        <th>Nombre</th>
+                        <th>Correo</th>
+                        <th>Rol</th>
+                        <th>Estado</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody></tbody>
+                  </table>
+                </div>
               </div>
             </div>
           </div>
@@ -622,7 +753,7 @@
 
   <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
-  <script type="module" src="Js/admin.js"></script>
+  <script type="module" src="js/admin.js"></script>
   <script>
     const layout = document.getElementById('adminLayout');
     const overlay = document.getElementById('overlay');

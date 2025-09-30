@@ -73,8 +73,7 @@
   </div>
 
   <script type="module">
-    // ====== CONFIG ======
-    const API_BASE = 'https://joyeria-full-stack-production.up.railway.app';
+    import { getProducts, API_BASE } from './js/api.js';
 
     // ===== helpers =====
     const $ = (sel, ctx=document) => ctx.querySelector(sel);
@@ -134,17 +133,9 @@
     }
 
     async function fetchProducts() {
-      const qs = new URLSearchParams();
-      if (state.q) qs.set('q', state.q);
-      if (state.onlyStock) qs.set('inStock', 'true');
+      const products = await getProducts();
 
-      const url = `${API_BASE}/api/products${qs.toString() ? `?${qs}` : ''}`;
-      const res = await fetch(url);
-      if (!res.ok) throw new Error('No se pudo obtener productos');
-      allProducts = await res.json();
-
-      // normaliza campos que usaremos
-      allProducts = allProducts.map(p => ({
+      allProducts = products.map(p => ({
         ...p,
         _id: p.Id ?? p.id,
         _name: p.Nombre ?? p.name ?? '',

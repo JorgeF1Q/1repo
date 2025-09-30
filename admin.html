@@ -476,20 +476,25 @@
 
         <section class="content-section" id="section-sales">
           <div class="section-card">
-            <h2 class="section-title">Resumen de ventas</h2>
-            <div class="placeholder-panel">
-              <div class="placeholder-card">
-                <h4>Próximamente</h4>
-                <p>Integra tus reportes de ventas o conecta un dashboard externo para monitorear resultados diarios.</p>
-              </div>
-              <div class="placeholder-card">
-                <h4>Exporta tus ventas</h4>
-                <p>Centraliza las órdenes y recibe notificaciones automáticas sobre cumplimientos y metas mensuales.</p>
-              </div>
-              <div class="placeholder-card">
-                <h4>Alertas inteligentes</h4>
-                <p>Configura recordatorios cuando el volumen de ventas supere o caiga por debajo de los límites deseados.</p>
-              </div>
+            <div class="d-flex flex-wrap align-items-center mb-3">
+              <h2 class="section-title mb-0">Gestión de pedidos</h2>
+              <span class="badge badge-pill badge-success ml-2">Ventas</span>
+            </div>
+            <div class="table-responsive shadow-sm rounded-lg">
+              <table id="tblPedidos" class="table table-hover mb-0">
+                <thead class="thead-light">
+                  <tr>
+                    <th>Nombre</th>
+                    <th>Dirección</th>
+                    <th>Método de pago</th>
+                    <th>Referencia</th>
+                    <th>Cupón</th>
+                    <th>Estado</th>
+                    <th class="text-right">Total</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
             </div>
           </div>
         </section>

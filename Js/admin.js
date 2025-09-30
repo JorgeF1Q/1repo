@@ -21,10 +21,13 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
 });
 
 /* ====== UI refs ====== */
-const $tbody = document.querySelector('#tblProductos tbody');
-const $modal = $('#modalProducto');
-const $frm   = document.getElementById('frmProducto');
-const money  = new Intl.NumberFormat('es-GT', { style:'currency', currency:'GTQ' });
+const $tbody        = document.querySelector('#tblProductos tbody');
+const $ordersTbody  = document.querySelector('#tblPedidos tbody');
+const salesNavBtn   = document.querySelector('.nav-btn[data-section="sales"]');
+const $modal        = $('#modalProducto');
+const $frm          = document.getElementById('frmProducto');
+const money         = new Intl.NumberFormat('es-GT', { style:'currency', currency:'GTQ' });
+let loadingPedidos  = false;
 
 /* Dropzone refs */
 const dropZone   = document.getElementById('dropZone');
@@ -57,11 +60,119 @@ function rowHTML(p) {
   `;
 }
 
+function pickValue(obj, keys) {
+  if (!obj) return undefined;
+  for (const key of keys) {
+    const value = obj[key];
+    if (value === null || value === undefined) continue;
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+      if (trimmed) return trimmed;
+      continue;
+    }
+    return value;
+  }
+  return undefined;
+}
+
+function displayValue(obj, keys, fallback = '—') {
+  const value = pickValue(obj, keys);
+  if (value === undefined) return fallback;
+  if (typeof value === 'number') return String(value);
+  if (typeof value === 'string') return value;
+  return String(value);
+}
+
+function pedidoRowHTML(order) {
+  const nombre     = displayValue(order, ['Nombre', 'CustomerName', 'Cliente', 'name']);
+  const direccion  = displayValue(order, ['Direccion', 'Address', 'customerAddress']);
+  const metodo     = displayValue(order, ['MetodoPago', 'Metodo', 'PaymentMethod', 'paymentMethod']);
+  const referencia = displayValue(order, ['Referencia', 'ReferenciaPago', 'reference']);
+  const cupon      = displayValue(order, ['CuponCodigo', 'CupomCodigo', 'Cupon', 'Coupon', 'CodigoCupon']);
+  const estado     = displayValue(order, ['Estado', 'estado', 'Status', 'status']);
+  const rawTotal   = pickValue(order, ['Total', 'total', 'Monto', 'amount', 'TotalPedido']);
+
+  let total = '—';
+  if (rawTotal !== undefined) {
+    const numeric = Number(rawTotal);
+    total = Number.isFinite(numeric) ? money.format(numeric) : String(rawTotal);
+  }
+
+  const id = order?.Id ?? order?.id ?? '';
+
+  return `
+    <tr data-id="${id}">
+      <td>${nombre}</td>
+      <td>${direccion}</td>
+      <td>${metodo}</td>
+      <td>${referencia}</td>
+      <td>${cupon}</td>
+      <td>${estado}</td>
+      <td class="text-right">${total}</td>
+    </tr>
+  `;
+}
+
+async function loadPedidos() {
+  if (!$ordersTbody || loadingPedidos) return;
+
+  loadingPedidos = true;
+  $ordersTbody.innerHTML = `
+    <tr>
+      <td colspan="7" class="text-center text-muted py-4">Cargando pedidos...</td>
+    </tr>
+  `;
+
+  try {
+    const data = await apiFetch('/api/orders', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+
+    const orders = Array.isArray(data)
+      ? data
+      : Array.isArray(data?.data)
+        ? data.data
+        : Array.isArray(data?.items)
+          ? data.items
+          : Array.isArray(data?.results)
+            ? data.results
+            : [];
+
+    if (!orders.length) {
+      $ordersTbody.innerHTML = `
+        <tr>
+          <td colspan="7" class="text-center text-muted py-4">No hay pedidos registrados.</td>
+        </tr>
+      `;
+      return;
+    }
+
+    $ordersTbody.innerHTML = orders.map(pedidoRowHTML).join('');
+  } catch (err) {
+    console.error(err);
+    $ordersTbody.innerHTML = `
+      <tr>
+        <td colspan="7" class="text-center text-danger py-4">Error al cargar pedidos.</td>
+      </tr>
+    `;
+  } finally {
+    loadingPedidos = false;
+  }
+}
+
 async function loadProductos() {
   const list = await apiFetch('/api/products'); // ✅ absoluto
   $tbody.innerHTML = list.map(rowHTML).join('');
 }
 loadProductos();
+
+if (salesNavBtn) {
+  salesNavBtn.addEventListener('click', () => {
+    loadPedidos();
+  });
+}
+
+loadPedidos();
 
 /* ====== Crear ====== */
 document.querySelector('[data-target="#modalProducto"]').addEventListener('click', () => {

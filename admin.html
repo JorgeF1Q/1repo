@@ -354,12 +354,42 @@
     .settings-panel form {
       background: rgba(242, 247, 255, 0.7);
       border-radius: 16px;
-      padding: 14px 16px;
+      padding: 16px 18px;
       margin-bottom: 18px;
+      display: grid;
+      gap: 16px;
+    }
+
+    .settings-panel form .form-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin: 0;
+    }
+
+    .settings-panel form .form-row > .form-group {
+      min-width: 0;
+    }
+
+    .settings-panel form .form-row > [class*='col-'] {
+      width: 100%;
+      max-width: none;
+      padding: 0;
     }
 
     .settings-panel form .form-group:last-child {
       margin-bottom: 0;
+    }
+
+    .settings-panel form .text-right {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    .settings-panel form .text-right .btn {
+      min-width: 140px;
     }
 
     .settings-panel table {
@@ -400,8 +430,31 @@
 
     .settings-inline {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-      gap: 12px;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      align-items: end;
+    }
+
+    .settings-inline .form-group {
+      margin-bottom: 0;
+      min-width: 0;
+    }
+
+    .settings-inline .form-group.text-right {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    .settings-inline .form-group.text-right .btn,
+    .settings-panel form .text-right .btn {
+      flex: 0 0 auto;
+    }
+
+    .settings-panel form .text-right .btn-link,
+    .settings-inline .form-group.text-right .btn-link {
+      min-width: auto;
     }
 
     .settings-empty {
@@ -503,6 +556,28 @@
 
       .section-card {
         padding: 18px;
+      }
+    }
+
+    @media (max-width: 576px) {
+      .settings-panel form {
+        padding: 14px 16px;
+      }
+
+      .settings-panel form .text-right,
+      .settings-inline .form-group.text-right {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .settings-panel form .text-right .btn,
+      .settings-inline .form-group.text-right .btn {
+        width: 100%;
+      }
+
+      .settings-panel form .text-right .btn-link,
+      .settings-inline .form-group.text-right .btn-link {
+        width: auto;
       }
     }
   </style>

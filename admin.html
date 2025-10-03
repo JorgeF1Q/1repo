@@ -255,6 +255,13 @@
       border: 1px solid rgba(255, 255, 255, 0.4);
     }
 
+    .section-subtitle {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: #1e3c72;
+      margin-bottom: 18px;
+    }
+
     .section-title {
       font-size: 1.5rem;
       font-weight: 600;
@@ -263,6 +270,76 @@
       display: flex;
       align-items: center;
       gap: 12px;
+    }
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .info-card,
+    .data-card {
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.8));
+      border-radius: 20px;
+      padding: 20px;
+      box-shadow: 0 15px 30px rgba(30, 60, 114, 0.14);
+    }
+
+    .info-card h3 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: #274b93;
+    }
+
+    .info-card strong {
+      font-size: 1.35rem;
+      color: #0f274f;
+    }
+
+    .info-card span {
+      font-size: 0.85rem;
+      color: #546b9b;
+    }
+
+    .data-grid {
+      display: grid;
+      gap: 20px;
+    }
+
+    .data-grid.two-columns {
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    }
+
+    .data-card h4 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      margin-bottom: 14px;
+      color: #274b93;
+    }
+
+    .data-card p {
+      margin-bottom: 14px;
+      font-size: 0.9rem;
+      color: #4c5f86;
+    }
+
+    .data-card table {
+      margin-bottom: 0;
+    }
+
+    .data-card .table thead th {
+      border-top: none;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .data-card .table tbody td {
+      font-size: 0.9rem;
+      vertical-align: middle;
     }
 
     .badge-pill {
@@ -301,6 +378,129 @@
       font-size: 0.9rem;
       line-height: 1.4;
       margin: 0;
+    }
+
+    .settings-wrapper {
+      margin-top: 24px;
+    }
+
+    .settings-status {
+      border-radius: 14px;
+      padding: 14px 18px;
+      margin-bottom: 16px;
+      background: rgba(42, 82, 152, 0.12);
+      color: #1e3c72;
+      font-weight: 500;
+      display: none;
+    }
+
+    .settings-status.error {
+      background: rgba(220, 53, 69, 0.12);
+      color: #b02a37;
+    }
+
+    .settings-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 22px;
+    }
+
+    .settings-panel {
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 20px;
+      padding: 22px 20px;
+      box-shadow: 0 16px 36px rgba(30, 60, 114, 0.18);
+      display: flex;
+      flex-direction: column;
+      min-height: 100%;
+    }
+
+    .settings-panel h3 {
+      font-size: 1.15rem;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: #1f2a40;
+    }
+
+    .settings-panel .panel-description {
+      font-size: 0.9rem;
+      color: #5c6c8c;
+      margin-bottom: 18px;
+    }
+
+    .settings-panel form {
+      background: rgba(242, 247, 255, 0.7);
+      border-radius: 16px;
+      padding: 14px 16px;
+      margin-bottom: 18px;
+    }
+
+    .settings-panel form .form-group:last-child {
+      margin-bottom: 0;
+    }
+
+    .settings-panel table {
+      width: 100%;
+      font-size: 0.87rem;
+      margin-bottom: 0;
+    }
+
+    .settings-panel table thead th {
+      border-top: none;
+      background: rgba(30, 60, 114, 0.05);
+    }
+
+    .settings-panel table tbody td {
+      vertical-align: middle;
+    }
+
+    .settings-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(30, 60, 114, 0.12);
+      color: #1e3c72;
+      font-size: 0.75rem;
+      margin: 4px 6px 4px 0;
+    }
+
+    .settings-chip button {
+      border: none;
+      background: transparent;
+      color: inherit;
+      padding: 0;
+      line-height: 1;
+      cursor: pointer;
+    }
+
+    .settings-inline {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+    }
+
+    .settings-empty {
+      font-size: 0.9rem;
+      color: #6c7a92;
+      text-align: center;
+      padding: 18px 0;
+    }
+
+    .settings-subsection {
+      margin-bottom: 20px;
+    }
+
+    .settings-subsection:last-child {
+      margin-bottom: 0;
+    }
+
+    .settings-subsection h4 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 10px;
+      color: #1e3c72;
     }
 
     /* Dropzone adjustments */
@@ -445,6 +645,85 @@
           <div class="section-card">
             <h2 class="section-title">Panel financiero unificado <span class="badge badge-pill badge-primary">Automático</span></h2>
             <iframe src="dashboard-financiero.html" class="dashboard-frame" loading="lazy" title="Dashboard Financiero"></iframe>
+            <div class="mt-4">
+              <h3 class="section-subtitle">Indicadores clave de Joyeria Mares</h3>
+              <div class="info-grid" id="dashboardKpiGrid"></div>
+            </div>
+
+            <div class="data-grid two-columns">
+              <article class="data-card">
+                <h4>Estructura de roles</h4>
+                <p>Resumen de los perfiles operativos y permisos configurados en la base de datos Joyeria.</p>
+                <table class="table table-sm table-hover" id="dashboardRolesTable">
+                  <thead class="thead-light">
+                    <tr>
+                      <th>Rol</th>
+                      <th>Permisos asignados</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </article>
+
+              <article class="data-card">
+                <h4>Catálogo de permisos</h4>
+                <p>Permisos disponibles para distribuir entre los equipos comerciales y de inventario.</p>
+                <table class="table table-sm table-striped" id="dashboardPermisosTable">
+                  <thead class="thead-light">
+                    <tr>
+                      <th>Permiso</th>
+                      <th>Descripción</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </article>
+            </div>
+
+            <div class="data-grid two-columns mt-4">
+              <article class="data-card">
+                <h4>Usuarios activos</h4>
+                <p>Listado de los administradores y colaboradores habilitados para operar el sistema.</p>
+                <table class="table table-sm table-hover" id="dashboardUsuariosTable">
+                  <thead class="thead-light">
+                    <tr>
+                      <th>Nombre</th>
+                      <th>Correo</th>
+                      <th>Rol</th>
+                      <th>Estado</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </article>
+
+              <article class="data-card">
+                <h4>Monitoreo de actividad</h4>
+                <p>Últimos eventos registrados en bitácoras y auditoría para seguimiento ejecutivo.</p>
+                <div class="table-responsive mb-3">
+                  <table class="table table-sm table-striped" id="dashboardBitacoraTable">
+                    <thead class="thead-light">
+                      <tr>
+                        <th>Usuario</th>
+                        <th>Acción</th>
+                      </tr>
+                    </thead>
+                    <tbody></tbody>
+                  </table>
+                </div>
+                <div class="table-responsive">
+                  <table class="table table-sm table-hover" id="dashboardAuditoriaTable">
+                    <thead class="thead-light">
+                      <tr>
+                        <th>Usuario</th>
+                        <th>Descripción</th>
+                      </tr>
+                    </thead>
+                    <tbody></tbody>
+                  </table>
+                </div>
+              </article>
+            </div>
           </div>
         </section>
 
@@ -471,6 +750,75 @@
                 <tbody></tbody>
               </table>
             </div>
+            <div class="mt-4">
+              <h3 class="section-subtitle">Catálogo Joyeria Mares</h3>
+              <div class="info-grid" id="productSummaryCards"></div>
+            </div>
+
+            <div class="data-grid two-columns">
+              <article class="data-card">
+                <h4>Productos destacados</h4>
+                <p>Inventario inicial con categorías, materiales y existencias actuales.</p>
+                <div class="table-responsive">
+                  <table class="table table-sm table-hover" id="datasetProductosTable">
+                    <thead class="thead-light">
+                      <tr>
+                        <th>Producto</th>
+                        <th>Categoría</th>
+                        <th>Material</th>
+                        <th>Precio (GTQ)</th>
+                        <th>Stock</th>
+                      </tr>
+                    </thead>
+                    <tbody></tbody>
+                  </table>
+                </div>
+              </article>
+
+              <article class="data-card">
+                <h4>Clasificaciones</h4>
+                <p>Catálogo base de categorías y materiales disponibles para nuevos lanzamientos.</p>
+                <div class="table-responsive mb-3">
+                  <table class="table table-sm table-striped" id="datasetCategoriasTable">
+                    <thead class="thead-light">
+                      <tr>
+                        <th>Categoría</th>
+                        <th>Productos</th>
+                      </tr>
+                    </thead>
+                    <tbody></tbody>
+                  </table>
+                </div>
+                <div class="table-responsive">
+                  <table class="table table-sm table-striped" id="datasetMaterialesTable">
+                    <thead class="thead-light">
+                      <tr>
+                        <th>Material</th>
+                        <th>Uso principal</th>
+                      </tr>
+                    </thead>
+                    <tbody></tbody>
+                  </table>
+                </div>
+              </article>
+            </div>
+
+            <div class="data-card mt-4">
+              <h4>Movimientos de inventario</h4>
+              <p>Entradas y salidas registradas por el equipo de almacén.</p>
+              <div class="table-responsive">
+                <table class="table table-sm table-hover" id="datasetMovimientosTable">
+                  <thead class="thead-light">
+                    <tr>
+                      <th>Producto</th>
+                      <th>Tipo</th>
+                      <th>Cantidad</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -486,45 +834,689 @@
       loading="lazy"
       title="Dashboard de reportería"
     ></iframe>
+    <div class="mt-4">
+      <h3 class="section-subtitle">CRM y pipeline comercial</h3>
+      <div class="info-grid" id="salesSummaryCards"></div>
+    </div>
+    <div class="data-grid two-columns">
+      <article class="data-card">
+        <h4>Clientes destacados</h4>
+        <p>Contactos con historial de compras y canales de comunicación registrados.</p>
+        <div class="table-responsive mb-3">
+          <table class="table table-sm table-hover" id="salesClientesTable">
+            <thead class="thead-light">
+              <tr>
+                <th>Cliente</th>
+                <th>Correo</th>
+                <th>Teléfono</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-sm table-striped" id="salesEventosTable">
+            <thead class="thead-light">
+              <tr>
+                <th>Evento</th>
+                <th>Fecha</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </article>
+
+      <article class="data-card">
+        <h4>Notificaciones y asistencia</h4>
+        <p>Campañas enviadas y conversaciones atendidas por el chatbot.</p>
+        <div class="table-responsive mb-3">
+          <table class="table table-sm table-striped" id="salesNotificacionesTable">
+            <thead class="thead-light">
+              <tr>
+                <th>Notificación</th>
+                <th>Audiencia</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-sm table-hover" id="salesChatbotTable">
+            <thead class="thead-light">
+              <tr>
+                <th>Cliente</th>
+                <th>Consulta</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </article>
+    </div>
+
+    <div class="data-card mt-4">
+      <h4>Órdenes y devoluciones</h4>
+      <p>Detalle de los carritos convertidos y seguimiento de entregas.</p>
+      <div class="table-responsive mb-3">
+        <table class="table table-sm table-hover" id="salesOrdenesTable">
+          <thead class="thead-light">
+            <tr>
+              <th>Orden</th>
+              <th>Cliente</th>
+              <th>Estado</th>
+              <th>Total (GTQ)</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="table-responsive mb-3">
+        <table class="table table-sm table-striped" id="salesDetalleTable">
+          <thead class="thead-light">
+            <tr>
+              <th>Orden</th>
+              <th>Producto</th>
+              <th>Cantidad</th>
+              <th>Precio (GTQ)</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-sm table-striped" id="salesDevolucionesTable">
+          <thead class="thead-light">
+            <tr>
+              <th>Orden</th>
+              <th>Motivo</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
   </div>
 </section>
 
 
         <section class="content-section" id="section-revenue">
           <div class="section-card">
-            <h2 class="section-title">Administración de ingresos</h2>
-            <div class="placeholder-panel">
-              <div class="placeholder-card">
-                <h4>Seguimiento financiero</h4>
-                <p>Visualiza tus ingresos por línea de negocio, calcula márgenes y controla tus costos en un solo panel.</p>
-              </div>
-              <div class="placeholder-card">
-                <h4>Conciliación rápida</h4>
-                <p>Consolida tus facturas emitidas y pendientes de cobro. Integra herramientas contables cuando lo requieras.</p>
-              </div>
-              <div class="placeholder-card">
-                <h4>Objetivos trimestrales</h4>
-                <p>Planifica tus metas financieras y haz seguimiento del progreso con indicadores personalizados.</p>
-              </div>
+            <div class="d-flex flex-wrap align-items-center mb-3">
+              <h2 class="section-title mb-0">Administración de ingresos</h2>
+              <span class="badge badge-pill badge-warning ml-2">Finanzas</span>
+            </div>
+            <div class="info-grid" id="revenueSummaryCards"></div>
+
+            <div class="data-grid two-columns">
+              <article class="data-card">
+                <h4>Pagos recibidos</h4>
+                <p>Detalle de transacciones por orden, método de pago y estado.</p>
+                <div class="table-responsive mb-3">
+                  <table class="table table-sm table-hover" id="revenuePagosTable">
+                    <thead class="thead-light">
+                      <tr>
+                        <th>Orden</th>
+                        <th>Monto (GTQ)</th>
+                        <th>Estado</th>
+                      </tr>
+                    </thead>
+                    <tbody></tbody>
+                  </table>
+                </div>
+                <div class="table-responsive">
+                  <table class="table table-sm table-striped" id="revenueOrdenMetodoTable">
+                    <thead class="thead-light">
+                      <tr>
+                        <th>Orden</th>
+                        <th>Método</th>
+                        <th>Monto (GTQ)</th>
+                      </tr>
+                    </thead>
+                    <tbody></tbody>
+                  </table>
+                </div>
+              </article>
+
+              <article class="data-card">
+                <h4>Comprobantes y métodos</h4>
+                <p>Documentación de respaldo para conciliación contable.</p>
+                <div class="table-responsive mb-3">
+                  <table class="table table-sm table-hover" id="revenueMetodosTable">
+                    <thead class="thead-light">
+                      <tr>
+                        <th>Método</th>
+                        <th>Disponibilidad</th>
+                      </tr>
+                    </thead>
+                    <tbody></tbody>
+                  </table>
+                </div>
+                <div class="table-responsive">
+                  <table class="table table-sm table-striped" id="revenueComprobantesTable">
+                    <thead class="thead-light">
+                      <tr>
+                        <th>Pago</th>
+                        <th>Archivo</th>
+                      </tr>
+                    </thead>
+                    <tbody></tbody>
+                  </table>
+                </div>
+              </article>
+            </div>
+
+            <div class="data-grid two-columns mt-4">
+              <article class="data-card">
+                <h4>Compras a proveedores</h4>
+                <p>Registro de órdenes de compra y condiciones pactadas.</p>
+                <div class="table-responsive mb-3">
+                  <table class="table table-sm table-hover" id="revenueComprasTable">
+                    <thead class="thead-light">
+                      <tr>
+                        <th>Compra</th>
+                        <th>Proveedor</th>
+                        <th>Total (GTQ)</th>
+                      </tr>
+                    </thead>
+                    <tbody></tbody>
+                  </table>
+                </div>
+                <div class="table-responsive">
+                  <table class="table table-sm table-striped" id="revenueCompraDetalleTable">
+                    <thead class="thead-light">
+                      <tr>
+                        <th>Compra</th>
+                        <th>Producto</th>
+                        <th>Cantidad</th>
+                        <th>Precio (GTQ)</th>
+                      </tr>
+                    </thead>
+                    <tbody></tbody>
+                  </table>
+                </div>
+              </article>
+
+              <article class="data-card">
+                <h4>Logística y entregas</h4>
+                <p>Seguimiento de envíos y transportistas asignados.</p>
+                <div class="table-responsive mb-3">
+                  <table class="table table-sm table-hover" id="revenueEnviosTable">
+                    <thead class="thead-light">
+                      <tr>
+                        <th>Orden</th>
+                        <th>Transportista</th>
+                        <th>Estado</th>
+                        <th>Tracking</th>
+                      </tr>
+                    </thead>
+                    <tbody></tbody>
+                  </table>
+                </div>
+                <div class="table-responsive">
+                  <table class="table table-sm table-striped" id="revenueEnvioDetalleTable">
+                    <thead class="thead-light">
+                      <tr>
+                        <th>Envío</th>
+                        <th>Producto</th>
+                        <th>Cantidad</th>
+                      </tr>
+                    </thead>
+                    <tbody></tbody>
+                  </table>
+                </div>
+              </article>
             </div>
           </div>
         </section>
 
         <section class="content-section" id="section-settings">
           <div class="section-card">
-            <h2 class="section-title">Configuración y seguridad</h2>
-            <div class="placeholder-panel">
-              <div class="placeholder-card">
-                <h4>Usuarios y roles</h4>
-                <p>Define accesos por perfil para proteger información sensible y delegar funciones operativas.</p>
+            <div class="d-flex flex-wrap align-items-center justify-content-between mb-3">
+              <div>
+                <h2 class="section-title mb-1">Configuración y seguridad</h2>
+                <p class="text-muted mb-0">Administra usuarios, roles, permisos y auditorías vinculados a tu instancia de Supabase.</p>
               </div>
-              <div class="placeholder-card">
-                <h4>Preferencias del panel</h4>
-                <p>Personaliza colores, notificaciones y accesos directos a los módulos más utilizados por tu equipo.</p>
-              </div>
-              <div class="placeholder-card">
-                <h4>Auditoría</h4>
-                <p>Monitorea cambios realizados en el sistema y mantén un historial completo de modificaciones.</p>
+              <span class="badge badge-pill badge-info">Supabase</span>
+            </div>
+
+            <div id="settingsStatus" class="settings-status" role="status"></div>
+            <div id="settingsPlaceholder" class="settings-empty">Copia <code>Js/config.sample.js</code> a <code>Js/config.js</code> y coloca tu <strong>SUPABASE_URL</strong> y <strong>anon key</strong> para activar este panel.</div>
+
+            <div class="settings-wrapper" id="settingsWrapper" hidden>
+              <div class="settings-grid">
+                <article class="settings-panel" id="settingsUsers">
+                  <h3>Usuarios y roles</h3>
+                  <p class="panel-description">Gestiona cuentas internas y asigna roles según las responsabilidades dentro del negocio.</p>
+
+                  <form id="userForm" autocomplete="off">
+                    <input type="hidden" name="usuario_id" />
+                    <div class="form-row">
+                      <div class="form-group col-md-6">
+                        <label for="userNombre">Nombre</label>
+                        <input id="userNombre" name="nombre" type="text" class="form-control" required />
+                      </div>
+                      <div class="form-group col-md-6">
+                        <label for="userEmail">Correo electrónico</label>
+                        <input id="userEmail" name="email" type="email" class="form-control" required />
+                      </div>
+                    </div>
+
+                    <div class="form-row">
+                      <div class="form-group col-md-4">
+                        <label for="userTelefono">Teléfono</label>
+                        <input id="userTelefono" name="telefono" type="text" class="form-control" placeholder="+502..." />
+                      </div>
+                      <div class="form-group col-md-4">
+                        <label for="userRol">Rol</label>
+                        <select id="userRol" name="rol_id" class="form-control" required>
+                          <option value="">Selecciona rol</option>
+                        </select>
+                      </div>
+                      <div class="form-group col-md-4">
+                        <label for="userEstado">Estado</label>
+                        <select id="userEstado" name="estado" class="form-control">
+                          <option value="activo">Activo</option>
+                          <option value="inactivo">Inactivo</option>
+                          <option value="suspendido">Suspendido</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div class="form-row">
+                      <div class="form-group col-md-6">
+                        <label for="userPassword">Contraseña temporal</label>
+                        <input id="userPassword" name="password" type="password" class="form-control" placeholder="Opcional" autocomplete="new-password" />
+                        <small class="form-text text-muted">Se almacenará como hash SHA-256. Úsala para restablecer accesos puntuales.</small>
+                      </div>
+                      <div class="form-group col-md-6 align-self-end text-right">
+                        <button class="btn btn-primary btn-sm" type="submit">Guardar usuario</button>
+                        <button class="btn btn-link btn-sm text-danger" id="userReset" type="button">Cancelar</button>
+                      </div>
+                    </div>
+                  </form>
+
+                  <div class="table-responsive">
+                    <table class="table table-hover table-sm" id="settingsUsersTable">
+                      <thead>
+                        <tr>
+                          <th>Nombre</th>
+                          <th>Correo</th>
+                          <th>Rol</th>
+                          <th>Estado</th>
+                          <th>Último acceso</th>
+                          <th class="text-right">Acciones</th>
+                        </tr>
+                      </thead>
+                      <tbody data-users-body>
+                        <tr>
+                          <td colspan="6" class="settings-empty">Conecta Supabase para ver tus usuarios administrativos.</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </article>
+
+                <article class="settings-panel" id="settingsRoles">
+                  <h3>Roles y permisos</h3>
+                  <p class="panel-description">Crea roles personalizados, mantén tu catálogo de permisos y controla qué puede hacer cada perfil.</p>
+
+                  <div class="settings-subsection">
+                    <h4>Roles</h4>
+                    <form id="roleForm" autocomplete="off">
+                      <input type="hidden" name="rol_id" />
+                      <div class="form-row">
+                        <div class="form-group col-md-6">
+                          <label for="roleNombre">Nombre</label>
+                          <input id="roleNombre" name="nombre" type="text" class="form-control" required />
+                        </div>
+                        <div class="form-group col-md-6">
+                          <label for="roleNivel">Nivel</label>
+                          <input id="roleNivel" name="nivel" type="number" class="form-control" min="1" step="1" placeholder="1 = mayor prioridad" />
+                          <small class="form-text text-muted">El nivel ayuda a ordenar jerarquías. Valores bajos indican mayor privilegio.</small>
+                        </div>
+                      </div>
+                      <div class="form-group">
+                        <label for="roleDescripcion">Descripción</label>
+                        <textarea id="roleDescripcion" name="descripcion" class="form-control" rows="2" placeholder="Ej. Gestiona inventarios y catálogos."></textarea>
+                      </div>
+                      <div class="text-right">
+                        <button class="btn btn-primary btn-sm" type="submit">Guardar rol</button>
+                        <button class="btn btn-link btn-sm text-danger" id="roleReset" type="button">Cancelar</button>
+                      </div>
+                    </form>
+
+                    <div class="table-responsive">
+                      <table class="table table-sm table-hover" id="settingsRolesTable">
+                        <thead>
+                          <tr>
+                            <th>Rol</th>
+                            <th>Nivel</th>
+                            <th>Descripción</th>
+                            <th class="text-right">Acciones</th>
+                          </tr>
+                        </thead>
+                        <tbody data-roles-body>
+                          <tr>
+                            <td colspan="4" class="settings-empty">Sin roles cargados todavía.</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  <div class="settings-subsection">
+                    <h4>Permisos</h4>
+                    <form id="permissionForm" autocomplete="off">
+                      <input type="hidden" name="permiso_id" />
+                      <div class="form-row">
+                        <div class="form-group col-md-4">
+                          <label for="permisoCodigo">Código</label>
+                          <input id="permisoCodigo" name="codigo" type="text" class="form-control" placeholder="inventario.listar" required />
+                        </div>
+                        <div class="form-group col-md-4">
+                          <label for="permisoCategoria">Categoría</label>
+                          <input id="permisoCategoria" name="categoria" type="text" class="form-control" placeholder="Inventario" />
+                        </div>
+                        <div class="form-group col-md-4">
+                          <label for="permisoDescripcion">Descripción</label>
+                          <input id="permisoDescripcion" name="descripcion" type="text" class="form-control" placeholder="Acceso a listado de productos" />
+                        </div>
+                      </div>
+                      <div class="text-right">
+                        <button class="btn btn-primary btn-sm" type="submit">Guardar permiso</button>
+                        <button class="btn btn-link btn-sm text-danger" id="permissionReset" type="button">Cancelar</button>
+                      </div>
+                    </form>
+
+                    <div class="table-responsive">
+                      <table class="table table-sm table-hover" id="settingsPermissionsTable">
+                        <thead>
+                          <tr>
+                            <th>Código</th>
+                            <th>Categoría</th>
+                            <th>Descripción</th>
+                            <th class="text-right">Acciones</th>
+                          </tr>
+                        </thead>
+                        <tbody data-permissions-body>
+                          <tr>
+                            <td colspan="4" class="settings-empty">Registra tus primeros permisos para habilitar accesos avanzados.</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  <div class="settings-subsection">
+                    <h4>Asignación de permisos</h4>
+                    <form id="rolePermissionForm" class="settings-inline" autocomplete="off">
+                      <div class="form-group mb-0">
+                        <label for="rpRol">Rol</label>
+                        <select id="rpRol" name="rol_id" class="form-control" required>
+                          <option value="">Selecciona rol</option>
+                        </select>
+                      </div>
+                      <div class="form-group mb-0">
+                        <label for="rpPermiso">Permiso</label>
+                        <select id="rpPermiso" name="permiso_id" class="form-control" required>
+                          <option value="">Selecciona permiso</option>
+                        </select>
+                      </div>
+                      <div class="form-group mb-0 align-self-end text-right">
+                        <button class="btn btn-outline-primary btn-sm" type="submit">Asignar</button>
+                      </div>
+                    </form>
+
+                    <div id="rolePermissionList" class="mt-3">
+                      <p class="settings-empty mb-0">Aún no hay permisos asociados a roles.</p>
+                    </div>
+                  </div>
+                </article>
+
+                <article class="settings-panel" id="settingsClients">
+                  <h3>Clientes</h3>
+                  <p class="panel-description">Registra nuevos clientes y actualiza sus datos de contacto para sincronizarlos con ventas y notificaciones.</p>
+
+                  <form id="clientForm" autocomplete="off">
+                    <input type="hidden" name="cliente_id" />
+                    <div class="form-row">
+                      <div class="form-group col-md-6">
+                        <label for="clientNombre">Nombre</label>
+                        <input id="clientNombre" name="nombre" type="text" class="form-control" required />
+                      </div>
+                      <div class="form-group col-md-6">
+                        <label for="clientEmail">Correo electrónico</label>
+                        <input id="clientEmail" name="email" type="email" class="form-control" placeholder="cliente@email.com" />
+                      </div>
+                    </div>
+
+                    <div class="form-row">
+                      <div class="form-group col-md-6">
+                        <label for="clientTelefono">Teléfono</label>
+                        <input id="clientTelefono" name="telefono" type="text" class="form-control" placeholder="+502..." />
+                      </div>
+                      <div class="form-group col-md-6 text-right align-self-end">
+                        <button class="btn btn-primary btn-sm" type="submit">Guardar cliente</button>
+                        <button class="btn btn-link btn-sm text-danger" id="clientReset" type="button">Cancelar</button>
+                      </div>
+                    </div>
+                  </form>
+
+                  <div class="table-responsive">
+                    <table class="table table-sm table-hover" id="settingsClientsTable">
+                      <thead>
+                        <tr>
+                          <th>Nombre</th>
+                          <th>Correo</th>
+                          <th>Teléfono</th>
+                          <th class="text-right">Acciones</th>
+                        </tr>
+                      </thead>
+                      <tbody data-clients-body>
+                        <tr>
+                          <td colspan="4" class="settings-empty">Conecta Supabase para listar clientes.</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </article>
+
+                <article class="settings-panel" id="settingsSuppliers">
+                  <h3>Proveedores</h3>
+                  <p class="panel-description">Administra la libreta de proveedores de Joyeria Mares para rastrear compras y contactos estratégicos.</p>
+
+                  <form id="supplierForm" autocomplete="off">
+                    <input type="hidden" name="proveedor_id" />
+                    <div class="form-row">
+                      <div class="form-group col-md-6">
+                        <label for="supplierNombre">Nombre comercial</label>
+                        <input id="supplierNombre" name="nombre" type="text" class="form-control" required />
+                      </div>
+                      <div class="form-group col-md-6">
+                        <label for="supplierNit">NIT</label>
+                        <input id="supplierNit" name="nit" type="text" class="form-control" placeholder="123456-7" />
+                      </div>
+                    </div>
+
+                    <div class="form-row">
+                      <div class="form-group col-md-6">
+                        <label for="supplierTelefono">Teléfono</label>
+                        <input id="supplierTelefono" name="telefono" type="text" class="form-control" placeholder="+502..." />
+                      </div>
+                      <div class="form-group col-md-6">
+                        <label for="supplierDireccion">Dirección</label>
+                        <input id="supplierDireccion" name="direccion" type="text" class="form-control" placeholder="Dirección completa" />
+                      </div>
+                    </div>
+
+                    <div class="text-right">
+                      <button class="btn btn-primary btn-sm" type="submit">Guardar proveedor</button>
+                      <button class="btn btn-link btn-sm text-danger" id="supplierReset" type="button">Cancelar</button>
+                    </div>
+                  </form>
+
+                  <div class="table-responsive">
+                    <table class="table table-sm table-hover" id="settingsSuppliersTable">
+                      <thead>
+                        <tr>
+                          <th>Nombre</th>
+                          <th>NIT</th>
+                          <th>Teléfono</th>
+                          <th>Dirección</th>
+                          <th class="text-right">Acciones</th>
+                        </tr>
+                      </thead>
+                      <tbody data-suppliers-body>
+                        <tr>
+                          <td colspan="5" class="settings-empty">Registra tus proveedores para verlos aquí.</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </article>
+
+                <article class="settings-panel" id="settingsOrders">
+                  <h3>Órdenes de venta</h3>
+                  <p class="panel-description">Genera ventas directas, actualiza sus estados y relaciona productos a cada orden.</p>
+
+                  <form id="orderForm" autocomplete="off">
+                    <input type="hidden" name="orden_id" />
+                    <div class="form-row">
+                      <div class="form-group col-md-6">
+                        <label for="orderCliente">Cliente</label>
+                        <select id="orderCliente" name="cliente_id" class="form-control" required>
+                          <option value="">Selecciona cliente</option>
+                        </select>
+                      </div>
+                      <div class="form-group col-md-3">
+                        <label for="orderEstado">Estado</label>
+                        <select id="orderEstado" name="estado" class="form-control">
+                          <option value="pendiente">Pendiente</option>
+                          <option value="pagado">Pagado</option>
+                          <option value="enviado">Enviado</option>
+                          <option value="completado">Completado</option>
+                          <option value="cancelado">Cancelado</option>
+                        </select>
+                      </div>
+                      <div class="form-group col-md-3">
+                        <label for="orderTotal">Total (GTQ)</label>
+                        <input id="orderTotal" name="total" type="number" min="0" step="0.01" class="form-control" placeholder="0.00" />
+                      </div>
+                    </div>
+                    <div class="text-right">
+                      <button class="btn btn-primary btn-sm" type="submit">Guardar orden</button>
+                      <button class="btn btn-link btn-sm text-danger" id="orderReset" type="button">Cancelar</button>
+                    </div>
+                  </form>
+
+                  <div class="table-responsive">
+                    <table class="table table-sm table-hover" id="settingsOrdersTable">
+                      <thead>
+                        <tr>
+                          <th>Orden</th>
+                          <th>Cliente</th>
+                          <th>Estado</th>
+                          <th>Total (GTQ)</th>
+                          <th>Actualizado</th>
+                          <th class="text-right">Acciones</th>
+                        </tr>
+                      </thead>
+                      <tbody data-orders-body>
+                        <tr>
+                          <td colspan="6" class="settings-empty">Crea tu primera orden para verla aquí.</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div id="orderItemsSection" class="settings-subsection" style="display: none;">
+                    <h4>Productos de la orden</h4>
+                    <p id="orderItemsHint" class="panel-description">Selecciona una orden para agregar productos y definir precios.</p>
+
+                    <form id="orderItemForm" class="settings-inline" autocomplete="off">
+                      <input type="hidden" name="orden_detalle_id" />
+                      <div class="form-group mb-0">
+                        <label for="orderItemProducto">Producto</label>
+                        <select id="orderItemProducto" name="producto_id" class="form-control" required>
+                          <option value="">Selecciona producto</option>
+                        </select>
+                      </div>
+                      <div class="form-group mb-0">
+                        <label for="orderItemCantidad">Cantidad</label>
+                        <input id="orderItemCantidad" name="cantidad" type="number" min="1" step="1" class="form-control" required />
+                      </div>
+                      <div class="form-group mb-0">
+                        <label for="orderItemPrecio">Precio unitario</label>
+                        <input id="orderItemPrecio" name="precio_unitario" type="number" min="0" step="0.01" class="form-control" required />
+                      </div>
+                      <div class="form-group mb-0 align-self-end text-right">
+                        <button class="btn btn-outline-primary btn-sm" type="submit">Guardar producto</button>
+                        <button class="btn btn-link btn-sm text-danger" id="orderItemReset" type="button">Cancelar</button>
+                      </div>
+                    </form>
+
+                    <div class="table-responsive mt-3">
+                      <table class="table table-sm table-striped" id="settingsOrderItemsTable">
+                        <thead>
+                          <tr>
+                            <th>Producto</th>
+                            <th>Cantidad</th>
+                            <th>Precio</th>
+                            <th>Total</th>
+                            <th class="text-right">Acciones</th>
+                          </tr>
+                        </thead>
+                        <tbody data-order-items-body>
+                          <tr>
+                            <td colspan="5" class="settings-empty">Selecciona una orden para gestionar sus productos.</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </article>
+
+                <article class="settings-panel" id="settingsAudit">
+                  <h3>Auditoría</h3>
+                  <p class="panel-description">Revisa el historial de acciones registradas en tu tabla <code>auditoria</code> para identificar cambios sensibles.</p>
+
+                  <div class="settings-subsection">
+                    <form id="auditFilterForm" class="settings-inline" autocomplete="off">
+                      <div class="form-group mb-0">
+                        <label for="auditEntidad">Entidad</label>
+                        <input id="auditEntidad" name="entidad" type="text" class="form-control" placeholder="Ej. usuario" />
+                      </div>
+                      <div class="form-group mb-0">
+                        <label for="auditUsuario">Usuario</label>
+                        <input id="auditUsuario" name="usuario" type="text" class="form-control" placeholder="ID o correo" />
+                      </div>
+                      <div class="form-group mb-0 align-self-end text-right">
+                        <button class="btn btn-outline-primary btn-sm" type="submit">Filtrar</button>
+                        <button class="btn btn-link btn-sm" id="auditReset" type="button">Limpiar</button>
+                      </div>
+                    </form>
+                  </div>
+
+                  <div class="table-responsive flex-grow-1">
+                    <table class="table table-sm table-striped mb-0" id="settingsAuditTable">
+                      <thead>
+                        <tr>
+                          <th>Fecha</th>
+                          <th>Entidad</th>
+                          <th>Acción</th>
+                          <th>Detalle</th>
+                          <th>Usuario</th>
+                        </tr>
+                      </thead>
+                      <tbody data-audit-body>
+                        <tr>
+                          <td colspan="5" class="settings-empty">Conecta Supabase para consultar los eventos de auditoría.</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </article>
               </div>
             </div>
           </div>
@@ -618,6 +1610,10 @@
 
   <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="Js/config.js"></script>
+  <script type="module" src="Js/admin-dashboard-data.js"></script>
+  <script type="module" src="Js/settings.js"></script>
   <script type="module" src="Js/admin.js"></script>
   <script>
     const layout = document.getElementById('adminLayout');

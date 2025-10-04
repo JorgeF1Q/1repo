@@ -1,5 +1,5 @@
 /**
- * Panel de configuración conectado a Supabase.
+ * Panel de configuración conectado a la API interna (MySQL).
  * Tablas esperadas:
  *  - usuario: usuario_id (PK), nombre, email, telefono, rol_id (FK rol.rol_id), estado, password_hash, ultimo_acceso.
  *  - rol: rol_id (PK), nombre, descripcion, nivel.
@@ -10,6 +10,8 @@
 const settingsWrapper = document.getElementById('settingsWrapper');
 const settingsStatus = document.getElementById('settingsStatus');
 const settingsPlaceholder = document.getElementById('settingsPlaceholder');
+
+const API_ENDPOINT = 'api/settings.php';
 
 const state = {
   users: [],
@@ -24,7 +26,46 @@ const state = {
   }
 };
 
-let client = null;
+function buildQuery(params = {}) {
+  const searchParams = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value === undefined || value === null || value === '') return;
+    searchParams.append(key, value);
+  });
+  const query = searchParams.toString();
+  return query ? `&${query}` : '';
+}
+
+async function apiRequest(entity, { method = 'GET', query = {}, body = null } = {}) {
+  const url = `${API_ENDPOINT}?entity=${encodeURIComponent(entity)}${buildQuery(query)}`;
+  const options = {
+    method,
+    headers: {
+      Accept: 'application/json'
+    }
+  };
+
+  if (body !== null && body !== undefined) {
+    options.headers['Content-Type'] = 'application/json';
+    options.body = JSON.stringify(body);
+  }
+
+  const response = await fetch(url, options);
+  const text = await response.text();
+  let payload = null;
+  try {
+    payload = text ? JSON.parse(text) : {};
+  } catch (error) {
+    payload = { error: text || 'Respuesta no válida del servidor.' };
+  }
+
+  if (!response.ok) {
+    const message = payload?.error || payload?.message || `HTTP ${response.status}`;
+    throw new Error(message);
+  }
+
+  return payload;
+}
 
 function showStatus(message, type = 'info', timeout = 4500) {
   if (!settingsStatus) return;
@@ -357,16 +398,20 @@ function attachTableActions() {
 
   usersTbody?.addEventListener('click', async (event) => {
     const button = event.target.closest('button[data-action]');
-    if (!button || !client) return;
-    const id = Number(button.dataset.id);
+    if (!button) return;
+    const id = button.dataset.id;
     if (!id) return;
+    const numericId = Number(id);
 
     if (button.dataset.action === 'edit') {
-      const user = state.users.find(item => Number(firstAvailable(item, ['usuario_id', 'id'])) === id);
+      const user = state.users.find(item => {
+        const value = firstAvailable(item, ['usuario_id', 'id']);
+        return value !== undefined && value !== null && String(value) === String(id);
+      });
       if (!user) return;
       const form = document.getElementById('userForm');
       if (!form) return;
-      form.usuario_id.value = id;
+      form.usuario_id.value = user.usuario_id ?? user.id ?? numericId ?? '';
       form.nombre.value = user.nombre ?? user.name ?? '';
       form.email.value = user.email ?? '';
       form.telefono.value = firstAvailable(user, ['telefono', 'phone']) ?? '';
@@ -377,8 +422,7 @@ function attachTableActions() {
     } else if (button.dataset.action === 'delete') {
       if (!window.confirm('¿Eliminar este usuario? Esta acción no se puede deshacer.')) return;
       try {
-        const { error } = await client.from('usuario').delete().eq('usuario_id', id);
-        if (error) throw error;
+        await apiRequest('users', { method: 'DELETE', query: { id } });
         showStatus('Usuario eliminado correctamente.');
         await loadUsers();
       } catch (error) {
@@ -390,16 +434,20 @@ function attachTableActions() {
 
   rolesTbody?.addEventListener('click', async (event) => {
     const button = event.target.closest('button[data-action]');
-    if (!button || !client) return;
-    const id = Number(button.dataset.id);
+    if (!button) return;
+    const id = button.dataset.id;
     if (!id) return;
+    const numericId = Number(id);
 
     if (button.dataset.action === 'edit') {
-      const role = state.roles.find(item => Number(firstAvailable(item, ['rol_id', 'id'])) === id);
+      const role = state.roles.find(item => {
+        const value = firstAvailable(item, ['rol_id', 'id']);
+        return value !== undefined && value !== null && String(value) === String(id);
+      });
       if (!role) return;
       const form = document.getElementById('roleForm');
       if (!form) return;
-      form.rol_id.value = id;
+      form.rol_id.value = role.rol_id ?? role.id ?? numericId ?? '';
       form.nombre.value = role.nombre ?? role.name ?? '';
       form.nivel.value = firstAvailable(role, ['nivel', 'priority']) ?? '';
       form.descripcion.value = firstAvailable(role, ['descripcion', 'description']) ?? '';
@@ -407,17 +455,7 @@ function attachTableActions() {
     } else if (button.dataset.action === 'delete') {
       if (!window.confirm('¿Eliminar este rol? También se eliminarán sus asignaciones.')) return;
       try {
-        const { error: relError } = await client.from('rol_permiso').delete().eq('rol_id', id);
-        if (relError) throw relError;
-        const usersWithRole = state.users.some(user => Number(firstAvailable(user, ['rol_id', 'role_id'])) === id);
-        if (usersWithRole) {
-          const { error: usersError } = await client.from('usuario').update({ rol_id: null }).eq('rol_id', id);
-          if (usersError) {
-            console.warn('[settings] No se pudo limpiar rol en usuarios', usersError);
-          }
-        }
-        const { error } = await client.from('rol').delete().eq('rol_id', id);
-        if (error) throw error;
+        await apiRequest('roles', { method: 'DELETE', query: { id } });
         showStatus('Rol eliminado correctamente.');
         await Promise.all([loadRoles(), loadRolePermissions(), loadUsers()]);
       } catch (error) {
@@ -429,16 +467,20 @@ function attachTableActions() {
 
   permissionsTbody?.addEventListener('click', async (event) => {
     const button = event.target.closest('button[data-action]');
-    if (!button || !client) return;
-    const id = Number(button.dataset.id);
+    if (!button) return;
+    const id = button.dataset.id;
     if (!id) return;
+    const numericId = Number(id);
 
     if (button.dataset.action === 'edit') {
-      const permission = state.permissions.find(item => Number(firstAvailable(item, ['permiso_id', 'id'])) === id);
+      const permission = state.permissions.find(item => {
+        const value = firstAvailable(item, ['permiso_id', 'id']);
+        return value !== undefined && value !== null && String(value) === String(id);
+      });
       if (!permission) return;
       const form = document.getElementById('permissionForm');
       if (!form) return;
-      form.permiso_id.value = id;
+      form.permiso_id.value = permission.permiso_id ?? permission.id ?? numericId ?? '';
       form.codigo.value = firstAvailable(permission, ['codigo', 'code', 'nombre']) ?? '';
       form.categoria.value = firstAvailable(permission, ['categoria', 'category']) ?? '';
       form.descripcion.value = firstAvailable(permission, ['descripcion', 'description']) ?? '';
@@ -446,10 +488,7 @@ function attachTableActions() {
     } else if (button.dataset.action === 'delete') {
       if (!window.confirm('¿Eliminar este permiso? Se quitará de todos los roles.')) return;
       try {
-        const { error: relError } = await client.from('rol_permiso').delete().eq('permiso_id', id);
-        if (relError) throw relError;
-        const { error } = await client.from('permiso').delete().eq('permiso_id', id);
-        if (error) throw error;
+        await apiRequest('permissions', { method: 'DELETE', query: { id } });
         showStatus('Permiso eliminado correctamente.');
         await Promise.all([loadPermissions(), loadRolePermissions()]);
       } catch (error) {
@@ -461,14 +500,16 @@ function attachTableActions() {
 
   rpContainer?.addEventListener('click', async (event) => {
     const button = event.target.closest('button[data-action="remove-rp"]');
-    if (!button || !client) return;
-    const rolId = Number(button.dataset.role);
-    const permisoId = Number(button.dataset.permission);
+    if (!button) return;
+    const rolId = button.dataset.role;
+    const permisoId = button.dataset.permission;
     if (!rolId || !permisoId) return;
 
     try {
-      const { error } = await client.from('rol_permiso').delete().match({ rol_id: rolId, permiso_id: permisoId });
-      if (error) throw error;
+      await apiRequest('role-permissions', {
+        method: 'DELETE',
+        query: { rol_id: rolId, permiso_id: permisoId }
+      });
       showStatus('Permiso retirado del rol.');
       await loadRolePermissions();
     } catch (error) {
@@ -479,78 +520,79 @@ function attachTableActions() {
 }
 
 async function loadUsers() {
-  if (!client) return;
   try {
-    const { data, error } = await client.from('usuario').select('*');
-    if (error) throw error;
-    state.users = Array.isArray(data) ? data : [];
+    const response = await apiRequest('users');
+    state.users = Array.isArray(response.data) ? response.data : [];
     renderUsers();
+    return true;
   } catch (error) {
     console.error('[settings] Error al cargar usuarios', error);
     showStatus(`Error al cargar usuarios: ${error.message}`, 'error', 6500);
+    return false;
   }
 }
 
 async function loadRoles() {
-  if (!client) return;
   try {
-    const { data, error } = await client.from('rol').select('*');
-    if (error) throw error;
-    state.roles = Array.isArray(data) ? data : [];
+    const response = await apiRequest('roles');
+    state.roles = Array.isArray(response.data) ? response.data : [];
     renderRoles();
+    return true;
   } catch (error) {
     console.error('[settings] Error al cargar roles', error);
     showStatus(`Error al cargar roles: ${error.message}`, 'error', 6500);
+    return false;
   }
 }
 
 async function loadPermissions() {
-  if (!client) return;
   try {
-    const { data, error } = await client.from('permiso').select('*');
-    if (error) throw error;
-    state.permissions = Array.isArray(data) ? data : [];
+    const response = await apiRequest('permissions');
+    state.permissions = Array.isArray(response.data) ? response.data : [];
     renderPermissions();
+    return true;
   } catch (error) {
     console.error('[settings] Error al cargar permisos', error);
     showStatus(`Error al cargar permisos: ${error.message}`, 'error', 6500);
+    return false;
   }
 }
 
 async function loadRolePermissions() {
-  if (!client) return;
   try {
-    const { data, error } = await client.from('rol_permiso').select('*');
-    if (error) throw error;
-    state.rolePermissions = Array.isArray(data) ? data : [];
+    const response = await apiRequest('role-permissions');
+    state.rolePermissions = Array.isArray(response.data) ? response.data : [];
     renderRolePermissions();
+    return true;
   } catch (error) {
     console.error('[settings] Error al cargar asignaciones', error);
     showStatus(`Error al cargar asignaciones: ${error.message}`, 'error', 6500);
+    return false;
   }
 }
 
 async function loadAudit() {
-  if (!client) return;
   try {
-    const { data, error } = await client.from('auditoria').select('*').limit(200);
-    if (error) throw error;
-    const sorted = sortAudit(Array.isArray(data) ? data : []);
+    const response = await apiRequest('audit');
+    const rows = Array.isArray(response.data) ? response.data : [];
+    const sorted = sortAudit(rows);
     state.auditRaw = sorted;
     state.audit = applyAuditFilters(sorted);
     renderAudit();
+    return true;
   } catch (error) {
     console.error('[settings] Error al cargar auditoría', error);
     showStatus(`Error al cargar auditoría: ${error.message}`, 'error', 6500);
+    return false;
   }
 }
 
 async function saveUser(event) {
   event.preventDefault();
-  if (!client) return;
   const form = event.currentTarget;
   const formData = new FormData(form);
-  const id = Number(formData.get('usuario_id')) || null;
+  const idValue = formData.get('usuario_id');
+  const id = idValue ? Number(idValue) || String(idValue) : null;
 
   const payload = {
     nombre: nullableValue(formData.get('nombre')),
@@ -579,12 +621,17 @@ async function saveUser(event) {
 
   try {
     if (id) {
-      const { error } = await client.from('usuario').update(payload).eq('usuario_id', id);
-      if (error) throw error;
+      await apiRequest('users', {
+        method: 'PUT',
+        query: { id },
+        body: payload
+      });
       showStatus('Usuario actualizado correctamente.');
     } else {
-      const { error } = await client.from('usuario').insert(payload);
-      if (error) throw error;
+      await apiRequest('users', {
+        method: 'POST',
+        body: payload
+      });
       showStatus('Usuario creado correctamente.');
     }
     resetForm(form);
@@ -597,10 +644,10 @@ async function saveUser(event) {
 
 async function saveRole(event) {
   event.preventDefault();
-  if (!client) return;
   const form = event.currentTarget;
   const formData = new FormData(form);
-  const id = Number(formData.get('rol_id')) || null;
+  const idValue = formData.get('rol_id');
+  const id = idValue ? Number(idValue) || String(idValue) : null;
 
   const payload = {
     nombre: nullableValue(formData.get('nombre')),
@@ -615,12 +662,17 @@ async function saveRole(event) {
 
   try {
     if (id) {
-      const { error } = await client.from('rol').update(payload).eq('rol_id', id);
-      if (error) throw error;
+      await apiRequest('roles', {
+        method: 'PUT',
+        query: { id },
+        body: payload
+      });
       showStatus('Rol actualizado correctamente.');
     } else {
-      const { error } = await client.from('rol').insert(payload);
-      if (error) throw error;
+      await apiRequest('roles', {
+        method: 'POST',
+        body: payload
+      });
       showStatus('Rol creado correctamente.');
     }
     resetForm(form);
@@ -633,10 +685,10 @@ async function saveRole(event) {
 
 async function savePermission(event) {
   event.preventDefault();
-  if (!client) return;
   const form = event.currentTarget;
   const formData = new FormData(form);
-  const id = Number(formData.get('permiso_id')) || null;
+  const idValue = formData.get('permiso_id');
+  const id = idValue ? Number(idValue) || String(idValue) : null;
 
   const payload = {
     codigo: nullableValue(formData.get('codigo')),
@@ -651,12 +703,17 @@ async function savePermission(event) {
 
   try {
     if (id) {
-      const { error } = await client.from('permiso').update(payload).eq('permiso_id', id);
-      if (error) throw error;
+      await apiRequest('permissions', {
+        method: 'PUT',
+        query: { id },
+        body: payload
+      });
       showStatus('Permiso actualizado correctamente.');
     } else {
-      const { error } = await client.from('permiso').insert(payload);
-      if (error) throw error;
+      await apiRequest('permissions', {
+        method: 'POST',
+        body: payload
+      });
       showStatus('Permiso creado correctamente.');
     }
     resetForm(form);
@@ -669,7 +726,6 @@ async function savePermission(event) {
 
 async function saveRolePermission(event) {
   event.preventDefault();
-  if (!client) return;
   const form = event.currentTarget;
   const formData = new FormData(form);
   const rolId = Number(formData.get('rol_id'));
@@ -691,8 +747,10 @@ async function saveRolePermission(event) {
   }
 
   try {
-    const { error } = await client.from('rol_permiso').insert({ rol_id: rolId, permiso_id: permisoId });
-    if (error) throw error;
+    await apiRequest('role-permissions', {
+      method: 'POST',
+      body: { rol_id: rolId, permiso_id: permisoId }
+    });
     showStatus('Permiso asignado correctamente.');
     resetForm(form);
     await loadRolePermissions();
@@ -729,22 +787,6 @@ function resetForm(form) {
 async function initialize() {
   if (!settingsWrapper) return;
 
-  const config = window.APP_CONFIG || {};
-  if (!window.supabase || !config.supabaseUrl || !config.supabaseAnonKey) {
-    setPlaceholderVisible(true);
-    showStatus('Configura tu URL y anon key de Supabase en Js/config.js para activar este módulo.', 'error', 0);
-    return;
-  }
-
-  client = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey, {
-    auth: {
-      persistSession: false
-    }
-  });
-
-  setPlaceholderVisible(false);
-  settingsWrapper.hidden = false;
-
   attachTableActions();
 
   document.getElementById('userForm')?.addEventListener('submit', saveUser);
@@ -771,9 +813,22 @@ async function initialize() {
     await loadAudit();
   });
 
-  await Promise.all([loadRoles(), loadPermissions()]);
-  await Promise.all([loadUsers(), loadRolePermissions(), loadAudit()]);
-  showStatus('Panel de configuración conectado correctamente.', 'info', 3200);
+  setPlaceholderVisible(false);
+  settingsWrapper.hidden = false;
+
+  showStatus('Sincronizando datos de configuración...', 'info', 2400);
+
+  const firstBatch = await Promise.all([loadRoles(), loadPermissions()]);
+  const secondBatch = await Promise.all([loadUsers(), loadRolePermissions(), loadAudit()]);
+
+  const batches = [...firstBatch, ...secondBatch];
+  const allOk = batches.every(result => result !== false);
+
+  if (allOk) {
+    showStatus('Panel de configuración conectado correctamente.', 'info', 3200);
+  } else {
+    showStatus('Algunas secciones no pudieron cargarse. Revisa la conexión de tu API.', 'error', 0);
+  }
 }
 
 if (document.readyState === 'loading') {

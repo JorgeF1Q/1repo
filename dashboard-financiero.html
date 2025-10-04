@@ -116,12 +116,12 @@
   </div>
 
   <div class="kpi-container">
-    <div class="kpi-card"><div class="kpi-value" id="totalSales">$0</div><div class="kpi-label">Ventas Totales</div><div class="kpi-change" id="salesChange">—</div></div>
-    <div class="kpi-card"><div class="kpi-value" id="totalProfit">$0</div><div class="kpi-label">Utilidad Total</div><div class="kpi-change" id="profitChange">—</div></div>
+    <div class="kpi-card"><div class="kpi-value" id="totalSales">Q0</div><div class="kpi-label">Ventas Totales</div><div class="kpi-change" id="salesChange">—</div></div>
+    <div class="kpi-card"><div class="kpi-value" id="totalProfit">Q0</div><div class="kpi-label">Utilidad Total</div><div class="kpi-change" id="profitChange">—</div></div>
     <div class="kpi-card"><div class="kpi-value" id="profitMargin">0%</div><div class="kpi-label">Margen de Utilidad</div><div class="kpi-change" id="marginChange">—</div></div>
     <div class="kpi-card"><div class="kpi-value" id="totalUnits">0</div><div class="kpi-label">Unidades Vendidas</div><div class="kpi-change" id="unitsChange">—</div></div>
-    <div class="kpi-card"><div class="kpi-value" id="avgSalePrice">$0</div><div class="kpi-label">Precio Promedio</div><div class="kpi-change" id="priceChange">—</div></div>
-    <div class="kpi-card"><div class="kpi-value" id="totalDiscounts">$0</div><div class="kpi-label">Descuentos Totales</div><div class="kpi-change" id="discountChange">—</div></div>
+    <div class="kpi-card"><div class="kpi-value" id="avgSalePrice">Q0</div><div class="kpi-label">Precio Promedio</div><div class="kpi-change" id="priceChange">—</div></div>
+    <div class="kpi-card"><div class="kpi-value" id="totalDiscounts">Q0</div><div class="kpi-label">Descuentos Totales</div><div class="kpi-change" id="discountChange">—</div></div>
   </div>
 
   <div class="charts-container">
@@ -155,7 +155,7 @@ const toNum = v => {
   return isFinite(n) ? n : 0;
 };
 function formatCurrency(value){
-  return new Intl.NumberFormat('es-ES',{style:'currency',currency:'USD',minimumFractionDigits:0,maximumFractionDigits:0}).format(value||0);
+  return new Intl.NumberFormat('es-GT',{style:'currency',currency:'GTQ',minimumFractionDigits:0,maximumFractionDigits:0}).format(value||0);
 }
 function formatNumber(value){
   return new Intl.NumberFormat('es-ES').format(Math.round(value||0));

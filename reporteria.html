@@ -53,7 +53,7 @@
         <div class="flex items-center justify-between">
           <div>
             <p class="text-sm font-medium text-gray-600 mb-1">Ventas Totales</p>
-            <p id="metricTotalSales" class="text-2xl font-bold text-gray-900">$0</p>
+            <p id="metricTotalSales" class="text-2xl font-bold text-gray-900">Q0</p>
             <div id="metricSalesGrowth" class="flex items-center mt-1 text-sm"></div>
           </div>
           <div class="p-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg">
@@ -88,7 +88,7 @@
         <div class="flex items-center justify-between">
           <div>
             <p class="text-sm font-medium text-gray-600 mb-1">Valor Promedio Orden</p>
-            <p id="metricAOV" class="text-2xl font-bold text-gray-900">$0</p>
+            <p id="metricAOV" class="text-2xl font-bold text-gray-900">Q0</p>
           </div>
           <div class="p-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg">
             <i data-lucide="package" class="w-6 h-6 text-white"></i>
@@ -143,7 +143,7 @@
           </div>
           <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
             <span class="text-gray-600">Ticket Promedio</span>
-            <span id="metricAOV2" class="font-semibold text-purple-600">$0</span>
+            <span id="metricAOV2" class="font-semibold text-purple-600">Q0</span>
           </div>
           <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
             <span class="text-gray-600">Productos Devueltos</span>
@@ -177,7 +177,7 @@
       <div class="card p-6">
         <h3 class="text-lg font-semibold text-gray-900 mb-4">Segmentación de Clientes</h3>
         <div class="space-y-3">
-          <div class="flex justify-between"><span>Clientes VIP (&gt;$2000)</span><span class="font-semibold">12</span></div>
+          <div class="flex justify-between"><span>Clientes VIP (&gt;Q2000)</span><span class="font-semibold">12</span></div>
           <div class="flex justify-between"><span>Clientes Regulares</span><span class="font-semibold">28</span></div>
           <div class="flex justify-between"><span>Clientes Ocasionales</span><span class="font-semibold">15</span></div>
         </div>
@@ -236,7 +236,7 @@
   </section>
 
   <script>
-    const fmtCurrency = (n) => new Intl.NumberFormat('es-GT', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(Number.isFinite(n) ? n : 0);
+    const fmtCurrency = (n) => new Intl.NumberFormat('es-GT', { style: 'currency', currency: 'GTQ', maximumFractionDigits: 0 }).format(Number.isFinite(n) ? n : 0);
     const fmtNumber = (n) => new Intl.NumberFormat('es-GT').format(Number.isFinite(n) ? n : 0);
     const monthFormatter = new Intl.DateTimeFormat('es-GT', { month: 'short' });
 
@@ -704,7 +704,7 @@
         return {
           labels: ['Sin datos'],
           datasets: [{
-            label: 'Ventas ($)',
+            label: 'Ventas (Q)',
             data: [0],
             fill: true,
             tension: 0.35,
@@ -718,7 +718,7 @@
       return {
         labels: slice.map(x => x.month),
         datasets: [{
-          label: 'Ventas ($)',
+          label: 'Ventas (Q)',
           data: slice.map(x => x.ventas),
           fill: true,
           tension: 0.35,
@@ -800,7 +800,7 @@
         data: {
           labels,
           datasets: [
-            { label: 'Ventas ($)', data: ventas, backgroundColor: '#8884d8' },
+            { label: 'Ventas (Q)', data: ventas, backgroundColor: '#8884d8' },
             { label: 'Órdenes', data: ordenes, backgroundColor: '#82ca9d' }
           ]
         },

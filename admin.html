@@ -815,13 +815,13 @@
             <div class="d-flex flex-wrap align-items-center justify-content-between mb-3">
               <div>
                 <h2 class="section-title mb-1">Configuración y seguridad</h2>
-                <p class="text-muted mb-0">Administra usuarios, roles, permisos y auditorías vinculados a tu instancia de Supabase.</p>
+                <p class="text-muted mb-0">Administra usuarios, roles, permisos y auditorías directamente desde tu base de datos MySQL.</p>
               </div>
-              <span class="badge badge-pill badge-info">Supabase</span>
+              <span class="badge badge-pill badge-info">API interna</span>
             </div>
 
             <div id="settingsStatus" class="settings-status" role="status"></div>
-            <div id="settingsPlaceholder" class="settings-empty">Copia <code>Js/config.sample.js</code> a <code>Js/config.js</code> y coloca tu <strong>SUPABASE_URL</strong> y <strong>anon key</strong> para activar este panel.</div>
+            <div id="settingsPlaceholder" class="settings-empty">Configura tus credenciales de base de datos en <code>api/db.php</code> para administrar usuarios y permisos desde este panel.</div>
 
             <div class="settings-wrapper" id="settingsWrapper" hidden>
               <div class="settings-grid">
@@ -890,7 +890,7 @@
                       </thead>
                       <tbody data-users-body>
                         <tr>
-                          <td colspan="6" class="settings-empty">Conecta Supabase para ver tus usuarios administrativos.</td>
+                          <td colspan="6" class="settings-empty">Sin usuarios registrados todavía.</td>
                         </tr>
                       </tbody>
                     </table>
@@ -1048,7 +1048,7 @@
                       </thead>
                       <tbody data-audit-body>
                         <tr>
-                          <td colspan="5" class="settings-empty">Conecta Supabase para consultar los eventos de auditoría.</td>
+                          <td colspan="5" class="settings-empty">Sin eventos de auditoría registrados aún.</td>
                         </tr>
                       </tbody>
                     </table>
@@ -1684,12 +1684,7 @@
     });
   })();
 </script>
-
-  
-  
-  
-  
-  
+  <script type="module" src="Js/settings.js"></script>
   <script type="module">
   // ======= CONFIG API =======
   const API_BASE = 'https://joyeria-full-stack-production.up.railway.app';

@@ -578,6 +578,57 @@
   </style>
 </head>
 <body class="admin-body">
+    
+    
+    <script>
+(function guardAdmin() {
+  // token y role guardados por Js/auth.js
+  const token = localStorage.getItem('token');
+  let role = localStorage.getItem('role');
+
+  // fallback: extraer rol del JWT si existe
+  function parseJwt(t){
+    try{
+      const base = t.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');
+      const json = decodeURIComponent(Array.prototype.map.call(atob(base), c =>
+        '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
+      ).join(''));
+      return JSON.parse(json);
+    }catch{return null;}
+  }
+
+  if (!role && token) {
+    const p = parseJwt(token);
+    role = p?.role ?? p?.Role ?? p?.rol ?? p?.Rol ?? p?.perfil ?? null;
+    if (role) localStorage.setItem('role', role);
+  }
+
+  // si no hay token o no es admin -> al login
+  if (!token || role !== 'admin') {
+    localStorage.removeItem('token');
+    localStorage.removeItem('role');
+    localStorage.removeItem('name');
+    localStorage.removeItem('email');
+    window.location.replace('login.html');
+    return;
+  }
+
+  // pinta nombre/email si están guardados
+  const nameEl = document.getElementById('adminName');
+  const emailEl = document.getElementById('adminEmail');
+  if (nameEl)  nameEl.textContent  = localStorage.getItem('name')  || nameEl.textContent;
+  if (emailEl) emailEl.textContent = localStorage.getItem('email') || emailEl.textContent;
+
+  const badge = document.getElementById('sessionBadge');
+  if (badge) badge.textContent = 'Sesión activa (admin)';
+})();
+</script>
+
+    
+    
+    
+    
+    
   <!-- ...el resto del HTML permanece igual... -->
   <div class="admin-layout" id="adminLayout">
     <aside class="sidebar" id="sidebar">
@@ -630,7 +681,7 @@
           <small class="text-muted">Administra tus productos, ventas e informes en un solo lugar</small>
         </div>
         <div class="topbar-actions">
-          <span class="text-secondary">Sesión activa</span>
+          <span id="sessionBadge" class="text-secondary">Verificando sesión...</span>
         </div>
       </header>
 
@@ -1041,10 +1092,11 @@
 
   <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="Js/config.js"></script>
-  <script type="module" src="Js/settings.js"></script>
-  <script type="module" src="Js/admin.js"></script>
+
+
+
+
+
   <script>
     const layout = document.getElementById('adminLayout');
     const overlay = document.getElementById('overlay');
@@ -1097,5 +1149,313 @@
       document.getElementById('adminName').textContent = storedName;
     }
   </script>
+  
+  
+  
+  
+  <script>
+  // ==== SESSION / AUTH UTILS (frontend) ====
+  const TOKEN_KEYS = ['auth_token', 'token', 'jwt', 'api_key'];
+
+  function getToken() {
+    // lee de localStorage o sessionStorage
+    for (const k of TOKEN_KEYS) {
+      const v = localStorage.getItem(k) || sessionStorage.getItem(k);
+      if (v) return v;
+    }
+    return null;
+  }
+  function setToken(t) {
+    localStorage.setItem('auth_token', t);
+  }
+  function clearTokens() {
+    for (const k of TOKEN_KEYS) {
+      localStorage.removeItem(k);
+      sessionStorage.removeItem(k);
+    }
+  }
+  // Decodificar payload de JWT sin librerías
+  function parseJwt(token) {
+    try {
+      const base = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+      const json = decodeURIComponent(Array.prototype.map.call(atob(base), c =>
+        '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
+      ).join(''));
+      return JSON.parse(json);
+    } catch {
+      return null;
+    }
+  }
+
+  // 1) Si venimos de /login y nos pasan ?token=..., lo guardamos
+  (function captureTokenFromURL() {
+    const url = new URL(location.href);
+    const tk = url.searchParams.get('token');
+    if (tk) {
+      setToken(tk);
+      // limpia la URL
+      history.replaceState({}, '', location.pathname);
+    }
+  })();
+
+  // 2) Proteger la página: si no hay token, enviar a login
+  (function guardPage() {
+    const badge = document.getElementById('sessionBadge');
+    const token = getToken();
+
+    if (!token) {
+      if (badge) badge.textContent = 'Sin sesión';
+      // cambia a la ruta real de tu login
+      window.location.replace('login.html');
+      return;
+    }
+
+    // Rellenar nombre/correo si vienen en el JWT
+    const payload = parseJwt(token);
+    if (payload) {
+      const nameEl = document.getElementById('adminName');
+      const emailEl = document.getElementById('adminEmail');
+      if (nameEl)  nameEl.textContent  = payload.name  || payload.Nombre || 'Administrador';
+      if (emailEl) emailEl.textContent = payload.email || payload.Email  || '';
+    }
+
+    if (badge) badge.textContent = 'Sesión activa';
+  })();
+
+  // 3) Logout: borra tokens y redirige a login
+  (function wireLogout() {
+    const btn = document.getElementById('logoutBtn');
+    if (!btn) return;
+    btn.addEventListener('click', () => {
+      clearTokens();
+      // cambia a la ruta real de tu login
+      window.location.replace('login.html');
+    });
+  })();
+</script>
+
+  
+  
+  
+  
+  
+  <script type="module">
+  // ======= CONFIG API =======
+  const API_BASE = 'https://joyeria-full-stack-production.up.railway.app';
+
+  // ======= Auth helpers =======
+  const TOKEN_KEYS = ['auth_token', 'token', 'jwt', 'api_key'];
+  function getToken() {
+    for (const k of TOKEN_KEYS) {
+      const v = localStorage.getItem(k);
+      if (v) return v;
+    }
+    return null;
+  }
+  function authHeaders(extra = {}) {
+    const t = getToken();
+    const h = { ...extra };
+    if (t) {
+      h['Authorization'] = t.startsWith('Bearer ') ? t : `Bearer ${t}`;
+      h['x-token'] = t;
+      h['x-api-key'] = t;
+    }
+    return h;
+  }
+  async function apiFetch(url, opts = {}) {
+    const headers = authHeaders(opts.headers || {});
+    const res = await fetch(url, { ...opts, headers });
+    const text = await res.text().catch(()=> '');
+    if (!res.ok) {
+      // intenta parsear json para mensaje fino
+      let msg = text;
+      try { msg = (JSON.parse(text).message || JSON.parse(text).error || text); } catch {}
+      throw new Error(msg || `HTTP ${res.status}`);
+    }
+    try { return JSON.parse(text); } catch { return text; }
+  }
+
+  // ======= Helpers =======
+  const $  = (s, ctx=document) => ctx.querySelector(s);
+  const $$ = (s, ctx=document) => Array.from(ctx.querySelectorAll(s));
+  const money = n => 'Q ' + Number(n||0).toFixed(2);
+
+  // Refs DOM
+  const tblBody    = $('#tblProductos tbody');
+  const frm        = $('#frmProducto');
+  const modalTitle = $('#modalTitle');
+
+  // Campos modal
+  const fId        = $('#p_id');
+  const fCodigo    = $('#p_codigo');
+  const fNombre    = $('#p_nombre');
+  const fPrecio    = $('#p_precio');
+  const fStock     = $('#p_stock');
+  const fActivo    = $('#p_activo');
+  const fCategoria = $('#p_categoria');
+  const fMaterial  = $('#p_material');
+  const fImagen    = $('#p_imagen');
+
+  // ========= LISTAR =========
+  async function loadProductos() {
+    tblBody.innerHTML = `
+      <tr><td colspan="7" class="text-center text-muted">Cargando...</td></tr>
+    `;
+    try {
+      // si este GET también requiere token, ya usamos apiFetch
+      const data = await apiFetch(`${API_BASE}/api/products`);
+      if (!Array.isArray(data) || data.length === 0) {
+        tblBody.innerHTML = `
+          <tr><td colspan="7" class="text-center text-muted">Sin productos.</td></tr>
+        `;
+        return;
+      }
+      tblBody.innerHTML = data.map(p => {
+        const id     = p.Id ?? p.id;
+        const codigo = p.Codigo ?? p.codigo ?? '';
+        const nombre = p.Nombre ?? p.nombre ?? '';
+        const precio = Number(p.Precio ?? p.precio ?? 0);
+        const stock  = Number(p.Stock ?? p.stock ?? 0);
+        const activo = Number(p.Activo ?? p.activo ?? 0);
+        return `
+          <tr data-id="${id}">
+            <td>${id}</td>
+            <td>${codigo}</td>
+            <td>${nombre}</td>
+            <td>${money(precio)}</td>
+            <td>${stock}</td>
+            <td>
+              <span class="badge badge-${activo ? 'success' : 'secondary'}">
+                ${activo ? 'Sí' : 'No'}
+              </span>
+            </td>
+            <td class="text-right">
+              <button class="btn btn-sm btn-outline-primary" data-edit="${id}">Editar</button>
+              <button class="btn btn-sm btn-outline-danger"  data-del="${id}">Eliminar</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    } catch (err) {
+      console.error(err);
+      tblBody.innerHTML = `
+        <tr><td colspan="7" class="text-center text-danger">
+          No se pudo cargar: ${err.message}
+        </td></tr>
+      `;
+    }
+  }
+
+  // ========= NUEVO =========
+  document.querySelector('[data-target="#modalProducto"]')
+    ?.addEventListener('click', () => {
+      frm.reset();
+      fId.value = '';
+      modalTitle.textContent = 'Nuevo producto';
+    });
+
+  // ========= EDITAR / ELIMINAR =========
+  document.getElementById('section-products')
+    .addEventListener('click', async (e) => {
+      const btn = e.target.closest('button');
+      if (!btn) return;
+
+      // --- Editar ---
+      if (btn.dataset.edit) {
+        const id = btn.dataset.edit;
+        try {
+          const p = await apiFetch(`${API_BASE}/api/products/${id}`);
+
+          fId.value        = p.Id ?? id;
+          fCodigo.value    = p.Codigo ?? p.codigo ?? '';
+          fNombre.value    = p.Nombre ?? p.nombre ?? '';
+          fPrecio.value    = Number(p.Precio ?? p.precio ?? 0).toFixed(2);
+          fStock.value     = Number(p.Stock ?? p.stock ?? 0);
+          fActivo.value    = Number(p.Activo ?? p.activo ?? 0);
+          fCategoria.value = p.Categoria ?? p.categoria ?? '';
+          fMaterial.value  = p.Material ?? p.material ?? '';
+          fImagen.value    = p.ImagenUrl ?? p.imagenurl ?? p.imagenUrl ?? '';
+
+          modalTitle.textContent = 'Editar producto';
+          window.jQuery?.('#modalProducto').modal('show');
+        } catch (err) {
+          alert(err.message || 'No se pudo cargar el producto');
+        }
+      }
+
+      // --- Eliminar ---
+      if (btn.dataset.del) {
+        const id = btn.dataset.del;
+        if (!confirm('¿Eliminar producto #' + id + '?')) return;
+        try {
+          await apiFetch(`${API_BASE}/api/products/${id}`, { method: 'DELETE' });
+          await loadProductos();
+        } catch (err) {
+          alert(err.message || 'Error al eliminar');
+        }
+      }
+    });
+
+  // ========= GUARDAR (crear/actualizar) =========
+  frm.addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+
+    const precio = parseFloat(fPrecio.value || '0');
+    const stock  = parseInt(fStock.value || '0', 10);
+    const activo = parseInt(fActivo.value || '0', 10) ? 1 : 0;
+
+    // Mandamos ambas variantes de nombres por si tu API valida uno u otro
+    const payload = {
+      // PascalCase
+      Codigo   : fCodigo.value.trim(),
+      Nombre   : fNombre.value.trim(),
+      Precio   : precio,
+      Stock    : stock,
+      Activo   : activo,
+      Categoria: fCategoria.value.trim(),
+      Material : fMaterial.value.trim(),
+      ImagenUrl: fImagen.value.trim(),
+      // camelCase
+      codigo   : fCodigo.value.trim(),
+      nombre   : fNombre.value.trim(),
+      precio   : precio,
+      stock    : stock,
+      activo   : activo,
+      categoria: fCategoria.value.trim(),
+      material : fMaterial.value.trim(),
+      imagenUrl: fImagen.value.trim(),
+      imagenurl: fImagen.value.trim()
+    };
+
+    const id = fId.value.trim();
+    const url = id ? `${API_BASE}/api/products/${id}` : `${API_BASE}/api/products`;
+    const method = id ? 'PUT' : 'POST';
+
+    try {
+      await apiFetch(url, {
+        method,
+        headers: { 'Content-Type':'application/json' },
+        body: JSON.stringify(payload)
+      });
+      window.jQuery?.('#modalProducto').modal('hide');
+      await loadProductos();
+    } catch (err) {
+      console.error('Guardar producto falló:', err);
+      alert(err.message || 'No se pudo guardar');
+    }
+  });
+
+  // ========= INIT =========
+  // Pon temporalmente tu token para probar desde consola:
+  // localStorage.setItem('auth_token','TU_TOKEN'); location.reload();
+  loadProductos();
+</script>
+
+
+  
+  
+  
+  
 </body>
+
 </html>

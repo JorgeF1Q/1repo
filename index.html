@@ -5,20 +5,477 @@
   <title>Joyería Mares</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <!-- Estilos y librerías -->
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet" />
   <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet" />
   <link href="css/style.css" rel="stylesheet" />
 
-  <!-- Look gris y limpio (puedes mover esto a css/style.css si prefieres) -->
   <style>
-    .nav-gray{background:linear-gradient(180deg,#2d2f33,#222428);box-shadow:0 6px 18px rgba(0,0,0,.25)}
-    .header-light{background:#f2f3f5;border-bottom:1px solid #e5e5e5}
-    #categoryFilters .btn{min-width:120px;border-color:#444;color:#222}
-    #categoryFilters .btn.active,#categoryFilters .btn:hover{background:#222;color:#fff;border-color:#222}
-    .card{border:0;border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.10)}
-    .card img{height:250px;object-fit:cover;border-top-left-radius:14px;border-top-right-radius:14px}
-    .whatsapp-btn{position:fixed;left:20px;bottom:20px;background:#25D366;color:#fff;border-radius:50%;width:50px;height:50px;display:flex;align-items:center;justify-content:center;font-size:24px;text-decoration:none;box-shadow:2px 2px 5px rgba(0,0,0,.3);z-index:1000}
+    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Inter:wght@300;400;500;600;700&display=swap');
+
+    :root {
+      --primary: #1a1a2e;
+      --primary-light: #2d2f33;
+      --accent: #d4af37;
+      --accent-hover: #c29d2f;
+      --bg-light: #f8f9fa;
+      --text-dark: #2d3436;
+      --text-muted: #636e72;
+      --shadow: 0 4px 20px rgba(0,0,0,0.08);
+      --shadow-lg: 0 10px 40px rgba(0,0,0,0.15);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      color: var(--text-dark);
+      background: linear-gradient(135deg, #f5f7fa 0%, #e8ebf0 100%);
+      min-height: 100vh;
+    }
+
+    h1, h2, h3, h4, h5, h6 {
+      font-family: 'Playfair Display', serif;
+    }
+
+    /* Navigation */
+    .nav-gray {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+      box-shadow: var(--shadow-lg);
+      padding: 0.75rem 0;
+    }
+
+    .navbar-brand {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: var(--accent) !important;
+      letter-spacing: 1px;
+      transition: all 0.3s ease;
+    }
+
+    .navbar-brand:hover {
+      transform: scale(1.05);
+    }
+
+    .navbar-brand i {
+      animation: sparkle 2s ease-in-out infinite;
+    }
+
+    @keyframes sparkle {
+      0%, 100% { transform: rotate(0deg) scale(1); }
+      50% { transform: rotate(180deg) scale(1.1); }
+    }
+
+    .nav-link {
+      color: rgba(255, 255, 255, 0.9) !important;
+      font-weight: 500;
+      padding: 0.5rem 1rem !important;
+      transition: all 0.3s ease;
+      position: relative;
+    }
+
+    .nav-link::before {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      width: 0;
+      height: 2px;
+      background: var(--accent);
+      transition: all 0.3s ease;
+      transform: translateX(-50%);
+    }
+
+    .nav-link:hover::before {
+      width: 80%;
+    }
+
+    .nav-link:hover {
+      color: var(--accent) !important;
+    }
+
+    .cart-count {
+      position: absolute;
+      top: -5px;
+      right: -5px;
+      background: var(--accent) !important;
+      color: var(--primary) !important;
+      font-size: 0.75rem;
+      font-weight: 700;
+      min-width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+    }
+
+    /* Header */
+    .header-light {
+      background: linear-gradient(135deg, rgba(26, 26, 46, 0.95) 0%, rgba(45, 47, 51, 0.95) 100%);
+      padding: 4rem 0;
+      position: relative;
+      overflow: hidden;
+      border-bottom: 4px solid var(--accent);
+    }
+
+    .header-light::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: radial-gradient(circle at 30% 50%, rgba(212, 175, 55, 0.1) 0%, transparent 50%);
+      animation: shimmer 8s ease-in-out infinite;
+    }
+
+    @keyframes shimmer {
+      0%, 100% { opacity: 0.3; }
+      50% { opacity: 0.6; }
+    }
+
+    .header-light h1 {
+      font-size: 3rem;
+      font-weight: 800;
+      color: var(--accent);
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+      margin-bottom: 0.75rem;
+      letter-spacing: 2px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .header-light p {
+      font-size: 1.2rem;
+      color: rgba(255, 255, 255, 0.9);
+      font-weight: 300;
+      letter-spacing: 1px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Filters */
+    .filter-container {
+      background: white;
+      padding: 1.5rem;
+      border-radius: 20px;
+      box-shadow: var(--shadow);
+      margin: 2rem 0;
+    }
+
+    #categoryFilters {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    #categoryFilters .btn {
+      min-width: 120px;
+      padding: 0.7rem 1.25rem;
+      border: 2px solid var(--primary);
+      color: var(--primary);
+      background: white;
+      font-weight: 600;
+      border-radius: 50px;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+      font-size: 0.95rem;
+    }
+
+    #categoryFilters .btn::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      border-radius: 50%;
+      background: var(--primary);
+      transition: all 0.4s ease;
+      transform: translate(-50%, -50%);
+    }
+
+    #categoryFilters .btn:hover::before,
+    #categoryFilters .btn.active::before {
+      width: 300px;
+      height: 300px;
+    }
+
+    #categoryFilters .btn:hover,
+    #categoryFilters .btn.active {
+      color: white;
+      border-color: var(--primary);
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    #categoryFilters .btn span {
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Products Grid */
+    .products-section {
+      padding: 2rem 0 3rem;
+    }
+
+    #productsGrid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 2rem;
+    }
+
+    .card {
+      border: none;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      background: white;
+      position: relative;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(135deg, rgba(212, 175, 55, 0.1) 0%, transparent 100%);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      pointer-events: none;
+    }
+
+    .card:hover {
+      transform: translateY(-10px);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .card:hover::before {
+      opacity: 1;
+    }
+
+    .card img {
+      width: 100%;
+      height: 250px;
+      object-fit: cover;
+      transition: all 0.5s ease;
+    }
+
+    .card:hover img {
+      transform: scale(1.1) rotate(2deg);
+    }
+
+    .card-body {
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      flex-grow: 1;
+    }
+
+    .card-body h6 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 1rem;
+      min-height: 50px;
+      font-family: 'Playfair Display', serif;
+    }
+
+    .price-info {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .price-info strong {
+      font-size: 1.5rem;
+      color: var(--accent);
+      font-family: 'Playfair Display', serif;
+    }
+
+    .badge {
+      font-size: 0.8rem;
+      padding: 0.4rem 0.8rem;
+      border-radius: 20px;
+      font-weight: 600;
+    }
+
+    .badge-secondary {
+      background: var(--primary) !important;
+      color: white !important;
+    }
+
+    .badge-danger {
+      background: #e74c3c !important;
+      color: white !important;
+    }
+
+    .card-body .btn {
+      margin-top: auto;
+      width: 100%;
+      padding: 0.75rem;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card-body .btn::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      border-radius: 50%;
+      background: var(--accent);
+      transition: all 0.5s ease;
+      transform: translate(-50%, -50%);
+    }
+
+    .card-body .btn:hover::before {
+      width: 300px;
+      height: 300px;
+    }
+
+    .card-body .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(26, 26, 46, 0.3);
+    }
+
+    .card-body .btn span {
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Empty State */
+    #emptyHome {
+      text-align: center;
+      padding: 4rem 2rem;
+      color: var(--text-muted);
+      font-size: 1.1rem;
+    }
+
+    /* WhatsApp Button */
+    .whatsapp-btn {
+      position: fixed;
+      left: 20px;
+      bottom: 20px;
+      background: linear-gradient(135deg, #25D366 0%, #20b358 100%);
+      color: white;
+      border-radius: 50%;
+      width: 60px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      text-decoration: none;
+      box-shadow: 0 6px 25px rgba(37, 211, 102, 0.4);
+      z-index: 1000;
+      transition: all 0.3s ease;
+      animation: bounce 2s ease-in-out infinite;
+    }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+
+    .whatsapp-btn:hover {
+      transform: scale(1.1) translateY(-5px);
+      box-shadow: 0 8px 30px rgba(37, 211, 102, 0.6);
+      color: white;
+    }
+
+    /* Footer */
+    footer {
+      background: var(--primary);
+      color: white;
+      padding: 2rem 0;
+      margin-top: 3rem;
+      box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    footer p {
+      margin: 0;
+      font-weight: 300;
+      letter-spacing: 0.5px;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .header-light h1 {
+        font-size: 2.25rem;
+      }
+
+      .header-light p {
+        font-size: 1rem;
+      }
+
+      #productsGrid {
+        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+        gap: 1.5rem;
+      }
+
+      #categoryFilters {
+        gap: 0.75rem;
+      }
+
+      #categoryFilters .btn {
+        min-width: 100px;
+        padding: 0.6rem 1rem;
+        font-size: 0.9rem;
+      }
+
+      .whatsapp-btn {
+        width: 50px;
+        height: 50px;
+        font-size: 24px;
+      }
+
+      .card img {
+        height: 220px;
+      }
+    }
+
+    @media (max-width: 576px) {
+      #productsGrid {
+        grid-template-columns: 1fr;
+      }
+
+      .filter-container {
+        padding: 1rem;
+      }
+
+      #categoryFilters .btn {
+        flex: 1 1 calc(50% - 0.5rem);
+        min-width: auto;
+      }
+    }
   </style>
 
   <!-- Google tag (gtag.js) -->
@@ -49,11 +506,7 @@
           <li class="nav-item"><a class="nav-link" href="index.html">Inicio</a></li>
           <li class="nav-item"><a class="nav-link" href="shop.html">Tienda</a></li>
           <li class="nav-item"><a class="nav-link" href="contact.html">Contacto</a></li>
-
-          <!-- Admin / Panel -->
           <li class="nav-item"><a id="adminLink" class="nav-link" href="login.html">Admin</a></li>
-
-          <!-- Carrito -->
           <li class="nav-item ml-lg-3">
             <a href="cart.html" class="nav-link position-relative">
               <i class="fas fa-shopping-cart"></i>
@@ -66,31 +519,44 @@
   </nav>
 
   <!-- HEADER -->
-  <header class="text-center py-5 header-light">
+  <header class="text-center header-light">
     <div class="container">
-      <h1 class="display-5 text-uppercase mb-2">Joyería Mares</h1>
-      <p class="lead mb-0">Descubre nuestras joyas exclusivas</p>
+      <h1 class="text-uppercase">
+        <i class="fas fa-gem"></i> Joyería Mares
+      </h1>
+      <p class="lead">Descubre nuestras joyas exclusivas</p>
     </div>
   </header>
 
   <!-- FILTROS -->
-  <div class="container my-4">
-    <div class="btn-group d-flex justify-content-center" id="categoryFilters">
-      <button class="btn btn-outline-dark active" data-filter="all">Todos</button>
-      <button class="btn btn-outline-dark" data-filter="anillos">Anillos</button>
-      <button class="btn btn-outline-dark" data-filter="collares">Collares</button>
-      <button class="btn btn-outline-dark" data-filter="aretes">Aretes</button>
+  <div class="container">
+    <div class="filter-container">
+      <div id="categoryFilters">
+        <button class="btn active" data-filter="all">
+          <span>Todos</span>
+        </button>
+        <button class="btn" data-filter="anillos">
+          <span>Anillos</span>
+        </button>
+        <button class="btn" data-filter="collares">
+          <span>Collares</span>
+        </button>
+        <button class="btn" data-filter="aretes">
+          <span>Aretes</span>
+        </button>
+      </div>
     </div>
   </div>
 
   <!-- PRODUCTOS -->
-  <main class="container pb-5">
-    <div id="productsGrid" class="row"></div>
+  <main class="container products-section">
+    <div id="productsGrid"></div>
+    <div id="emptyHome" class="d-none">No hay productos para esta categoría.</div>
   </main>
 
   <!-- FOOTER -->
-  <footer class="bg-dark text-white text-center py-3">
-    <p class="mb-0">&copy; 2025 Joyería Mares. Todos los derechos reservados.</p>
+  <footer class="text-white text-center">
+    <p>&copy; 2025 Joyería Mares. Todos los derechos reservados.</p>
   </footer>
 
   <!-- WhatsApp Floating Button -->
@@ -103,27 +569,113 @@
   <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
 
-  <!-- Lógica de la tienda -->
-  <script type="module" src="js/api.js"></script>
-  <script type="module" src="js/main.js"></script>
+  <!-- Lógica Home (render + filtros) -->
+  <script type="module">
+    import * as Api from './Js/api.js';
 
-  <!-- Enlace Admin -> Panel según rol (debe ir al final para que #adminLink exista) -->
-  <script>
-    (function () {
+    const API_BASE = Api.API_BASE ?? Api.default?.API_BASE ?? '';
+    const listProducts =
+      Api.listProducts ?? Api.default?.listProducts ??
+      Api.getProducts ?? Api.default?.getProducts;
+
+    if (!listProducts) {
+      console.error('No se encontró listProducts en ./Js/api.js');
+    }
+
+    const $ = (sel, ctx=document)=>ctx.querySelector(sel);
+    const money = (n)=>`Q ${Number(n||0).toFixed(2)}`;
+
+    const withImgPrefix = (raw) => {
+      const r = String(raw||'').trim();
+      if (!r) return 'img/placeholder.jpg';
+      if (r.startsWith('http://') || r.startsWith('https://') || r.startsWith('data:')) return r;
+      if (r.startsWith('/')) return `${API_BASE}${r}`;
+      return `${API_BASE}/${r}`;
+    };
+    const toBool = (v) => typeof v==='boolean' ? v : (String(v).trim()==='1' || String(v).toLowerCase()==='true');
+
+    let allProducts = [];
+    let currentFilter = 'all';
+
+    async function loadData(){
+      try{
+        const rows = await listProducts();
+        allProducts = (rows||[]).map(p => ({
+          id: p.Id ?? p.id,
+          name: p.Nombre ?? p.name ?? '',
+          price: Number(p.Precio ?? p.price ?? 0),
+          img: withImgPrefix(p.ImagenUrl ?? p.image),
+          stock: Number(p.Stock ?? p.stock ?? 0),
+          active: toBool(p.Activo ?? 1),
+          cat: String(p.Categoria ?? p.categoria ?? '').toLowerCase()
+        }));
+      }catch(e){
+        console.error('Error listando productos', e);
+        allProducts = [];
+      }
+    }
+
+    function render(){
+      const grid = $('#productsGrid');
+      const empty = $('#emptyHome');
+      grid.innerHTML = '';
+
+      let view = allProducts.filter(p => p.active && p.stock >= 0);
+      if (currentFilter !== 'all') {
+        view = view.filter(p => p.cat === currentFilter);
+      }
+
+      if (!view.length){
+        empty.classList.remove('d-none');
+        return;
+      }
+      empty.classList.add('d-none');
+
+      view.forEach(p=>{
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+          <img src="${p.img}" alt="${p.name}" loading="lazy">
+          <div class="card-body">
+            <h6 title="${p.name}">${p.name}</h6>
+            <div class="price-info">
+              <strong>${money(p.price)}</strong>
+              <span class="badge ${p.stock>0?'badge-secondary':'badge-danger'}">
+                ${p.stock>0 ? 'Disponible' : 'Agotado'}
+              </span>
+            </div>
+            <a href="shop.html?cat=${encodeURIComponent(p.cat)}" class="btn">
+              <span>Ver en tienda</span>
+            </a>
+          </div>`;
+        grid.appendChild(card);
+      });
+    }
+
+    function bindFilters(){
+      const group = $('#categoryFilters');
+      group.addEventListener('click', (e)=>{
+        const btn = e.target.closest('button[data-filter]');
+        if (!btn) return;
+        [...group.querySelectorAll('button')].forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active');
+        currentFilter = btn.dataset.filter;
+        render();
+      });
+    }
+
+    (function attachAdminLink(){
       const token = localStorage.getItem('token');
       const role  = localStorage.getItem('role');
       const adminLink = document.getElementById('adminLink');
-
-      if (adminLink) {
-        if (token && role === 'admin') {
-          adminLink.textContent = 'Panel';
-          adminLink.href = 'admin.html';
-        } else {
-          adminLink.textContent = 'Admin';
-          adminLink.href = 'login.html';
-        }
-      }
+      if (!adminLink) return;
+      if (token && role === 'admin') { adminLink.textContent='Panel'; adminLink.href='admin.html'; }
+      else { adminLink.textContent='Admin'; adminLink.href='login.html'; }
     })();
+
+    bindFilters();
+    await loadData();
+    render();
   </script>
 </body>
 </html>

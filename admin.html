@@ -737,19 +737,74 @@
 
         <section class="content-section" id="section-revenue">
           <div class="section-card">
-            <h2 class="section-title">Administración de ingresos</h2>
-            <div class="placeholder-panel">
-              <div class="placeholder-card">
-                <h4>Seguimiento financiero</h4>
-                <p>Visualiza tus ingresos por línea de negocio, calcula márgenes y controla tus costos en un solo panel.</p>
+            <div class="d-flex flex-wrap align-items-center mb-3">
+              <h2 class="section-title mb-0">Administración de ingresos</h2>
+              <span class="badge badge-pill badge-warning ml-2">Finanzas</span>
+              <div class="ml-auto d-flex align-items-center">
+                <small id="revenueLastUpdate" class="text-muted mr-3">Sin datos cargados.</small>
+                <button id="btnRevenueReload" class="btn btn-outline-primary btn-sm">Actualizar</button>
               </div>
-              <div class="placeholder-card">
-                <h4>Conciliación rápida</h4>
-                <p>Consolida tus facturas emitidas y pendientes de cobro. Integra herramientas contables cuando lo requieras.</p>
+            </div>
+            <div id="revenueNotice" class="alert alert-info">Cargando información de ingresos...</div>
+            <div class="row" id="revenueSummaryRow"></div>
+            <div class="row mt-4">
+              <div class="col-lg-7">
+                <div class="card shadow-sm mb-4">
+                  <div class="card-body">
+                    <h5 class="card-title mb-3">Órdenes y cobros</h5>
+                    <div class="table-responsive">
+                      <table class="table table-sm table-hover" id="tblRevenueOrders">
+                        <thead class="thead-light">
+                          <tr>
+                            <th>Orden</th>
+                            <th>Cliente</th>
+                            <th>Estado</th>
+                            <th class="text-right">Ventas netas</th>
+                            <th class="text-right">Descuento</th>
+                            <th class="text-right">Utilidad</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <td colspan="6" class="text-center text-muted py-4">Cargando...</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div class="placeholder-card">
-                <h4>Objetivos trimestrales</h4>
-                <p>Planifica tus metas financieras y haz seguimiento del progreso con indicadores personalizados.</p>
+              <div class="col-lg-5">
+                <div class="card shadow-sm mb-4">
+                  <div class="card-body">
+                    <h5 class="card-title mb-3">Estados de ingreso</h5>
+                    <ul class="list-group list-group-flush" id="revenueStatusList">
+                      <li class="list-group-item text-muted text-center">Cargando...</li>
+                    </ul>
+                  </div>
+                </div>
+                <div class="card shadow-sm">
+                  <div class="card-body">
+                    <h5 class="card-title mb-3">Productos con más ingresos</h5>
+                    <div class="table-responsive">
+                      <table class="table table-sm mb-0" id="tblRevenueProducts">
+                        <thead class="thead-light">
+                          <tr>
+                            <th>Producto</th>
+                            <th class="text-right">Ventas netas</th>
+                            <th class="text-right">Utilidad</th>
+                            <th class="text-right">Unidades</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <td colspan="4" class="text-center text-muted py-4">Cargando...</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -760,13 +815,13 @@
             <div class="d-flex flex-wrap align-items-center justify-content-between mb-3">
               <div>
                 <h2 class="section-title mb-1">Configuración y seguridad</h2>
-                <p class="text-muted mb-0">Administra usuarios, roles, permisos y auditorías vinculados a tu instancia de Supabase.</p>
+                <p class="text-muted mb-0">Administra usuarios, roles, permisos y auditorías directamente desde tu base de datos MySQL.</p>
               </div>
-              <span class="badge badge-pill badge-info">Supabase</span>
+              <span class="badge badge-pill badge-info">API interna</span>
             </div>
 
             <div id="settingsStatus" class="settings-status" role="status"></div>
-            <div id="settingsPlaceholder" class="settings-empty">Copia <code>Js/config.sample.js</code> a <code>Js/config.js</code> y coloca tu <strong>SUPABASE_URL</strong> y <strong>anon key</strong> para activar este panel.</div>
+            <div id="settingsPlaceholder" class="settings-empty">Configura tus credenciales de base de datos en <code>api/db.php</code> para administrar usuarios y permisos desde este panel.</div>
 
             <div class="settings-wrapper" id="settingsWrapper" hidden>
               <div class="settings-grid">
@@ -835,7 +890,7 @@
                       </thead>
                       <tbody data-users-body>
                         <tr>
-                          <td colspan="6" class="settings-empty">Conecta Supabase para ver tus usuarios administrativos.</td>
+                          <td colspan="6" class="settings-empty">Sin usuarios registrados todavía.</td>
                         </tr>
                       </tbody>
                     </table>
@@ -993,7 +1048,7 @@
                       </thead>
                       <tbody data-audit-body>
                         <tr>
-                          <td colspan="5" class="settings-empty">Conecta Supabase para consultar los eventos de auditoría.</td>
+                          <td colspan="5" class="settings-empty">Sin eventos de auditoría registrados aún.</td>
                         </tr>
                       </tbody>
                     </table>
@@ -1149,10 +1204,406 @@
       document.getElementById('adminName').textContent = storedName;
     }
   </script>
-  
-  
-  
-  
+
+  <script>
+    (function () {
+      const summaryRow = document.getElementById('revenueSummaryRow');
+      if (!summaryRow) return;
+
+      const ordersBody = document.querySelector('#tblRevenueOrders tbody');
+      const productsBody = document.querySelector('#tblRevenueProducts tbody');
+      const statusList = document.getElementById('revenueStatusList');
+      const noticeEl = document.getElementById('revenueNotice');
+      const refreshBtn = document.getElementById('btnRevenueReload');
+      const lastUpdateEl = document.getElementById('revenueLastUpdate');
+
+      const currencyFmt = new Intl.NumberFormat('es-GT', {
+        style: 'currency',
+        currency: 'USD',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+      const numberFmt = new Intl.NumberFormat('es-GT');
+      const dateFmt = new Intl.DateTimeFormat('es-GT', { dateStyle: 'medium' });
+
+      function showNotice(type, message) {
+        if (!noticeEl) return;
+        noticeEl.className = `alert alert-${type}`;
+        noticeEl.textContent = message;
+        noticeEl.classList.remove('d-none');
+      }
+
+      function hideNotice() {
+        if (!noticeEl) return;
+        noticeEl.classList.add('d-none');
+        noticeEl.textContent = '';
+      }
+
+      function formatCurrency(value) {
+        const num = Number(value);
+        return currencyFmt.format(Number.isFinite(num) ? num : 0);
+      }
+
+      function formatNumber(value) {
+        const num = Number(value);
+        if (!Number.isFinite(num)) return '0';
+        return numberFmt.format(Math.round(num));
+      }
+
+      function formatOrderId(value) {
+        if (value === null || value === undefined) return '#ORD';
+        const text = String(value).trim();
+        if (!text) return '#ORD';
+        if (text.startsWith('#')) return text;
+        if (/^ord/i.test(text)) return text.startsWith('#') ? text : `#${text}`;
+        if (/^\d+$/.test(text)) return `#ORD-${text.padStart(3, '0')}`;
+        return `#${text}`;
+      }
+
+      function normalizeStatus(status) {
+        if (status === null || status === undefined) return 'Procesando';
+        const raw = String(status).trim();
+        if (!raw) return 'Procesando';
+        const lower = raw.toLowerCase();
+        const mapping = {
+          pagada: 'Pagada',
+          pagado: 'Pagado',
+          completado: 'Completado',
+          completada: 'Completado',
+          entregado: 'Entregado',
+          enviado: 'Enviado',
+          pendiente: 'Pendiente',
+          procesando: 'Procesando',
+          cancelado: 'Cancelado',
+          cancelada: 'Cancelado',
+          anulado: 'Anulado'
+        };
+        return mapping[lower] || raw.charAt(0).toUpperCase() + raw.slice(1);
+      }
+
+      function statusBadge(label) {
+        const normalized = normalizeStatus(label);
+        const lower = normalized.toLowerCase();
+        let tone = 'secondary';
+        if (['pagado', 'pagada', 'completado', 'entregado'].includes(lower)) tone = 'success';
+        else if (['enviado', 'pendiente', 'procesando'].includes(lower)) tone = 'warning';
+        else if (['cancelado', 'anulado'].includes(lower)) tone = 'danger';
+        return `<span class="badge badge-${tone}">${normalized}</span>`;
+      }
+
+      function parseRowDate(row) {
+        if (row.date) {
+          const d = new Date(row.date);
+          if (!Number.isNaN(d.getTime())) return d;
+        }
+        if (row.year !== undefined && row.monthNumber !== undefined) {
+          const y = Number(row.year);
+          const m = Number(row.monthNumber);
+          if (!Number.isNaN(y) && !Number.isNaN(m)) {
+            const d = new Date(y, m - 1, 1);
+            if (!Number.isNaN(d.getTime())) return d;
+          }
+        }
+        return null;
+      }
+
+      function deriveCustomer(row, orderId) {
+        const name = row.customerName ? String(row.customerName).trim() : '';
+        if (name) return name;
+        const id = row.customerId;
+        if (id !== null && id !== undefined) {
+          const text = String(id).trim();
+          if (text) return `Cliente ${text}`;
+        }
+        return `Orden ${formatOrderId(orderId)}`;
+      }
+
+      function describeOrdersCount(count) {
+        return count === 1 ? '1 orden' : `${count} órdenes`;
+      }
+
+      function computeAggregations(rows) {
+        const summary = { gross: 0, net: 0, discounts: 0, profit: 0, units: 0 };
+        const ordersMap = new Map();
+        const productsMap = new Map();
+        let latestDate = null;
+
+        rows.forEach((row, index) => {
+          const gross = Number(row.grossSales) || 0;
+          const net = Number(row.sales) || 0;
+          const discount = Number(row.discounts) || 0;
+          const profit = Number(row.profit) || 0;
+          const units = Number(row.unitsSold) || 0;
+
+          summary.gross += gross;
+          summary.net += net;
+          summary.discounts += discount;
+          summary.profit += profit;
+          summary.units += units;
+
+          const rawId = row.orderId ?? row.orden_id ?? row.order ?? row.id ?? `tmp-${index}`;
+          const key = String(rawId);
+          if (!ordersMap.has(key)) {
+            ordersMap.set(key, {
+              id: rawId,
+              key,
+              displayId: formatOrderId(rawId),
+              customer: deriveCustomer(row, rawId),
+              status: normalizeStatus(row.orderStatus),
+              gross: 0,
+              net: 0,
+              discount: 0,
+              profit: 0,
+              units: 0,
+              date: null,
+              dateLabel: ''
+            });
+          }
+
+          const order = ordersMap.get(key);
+          order.gross += gross;
+          order.net += net;
+          order.discount += discount;
+          order.profit += profit;
+          order.units += units;
+
+          const explicitName = row.customerName ? String(row.customerName).trim() : '';
+          if (explicitName && (!order.customer || order.customer.startsWith('Orden '))) {
+            order.customer = explicitName;
+          }
+
+          const status = normalizeStatus(row.orderStatus);
+          if (status) {
+            order.status = status;
+          }
+
+          const dateObj = parseRowDate(row);
+          if (dateObj) {
+            if (!order.date || dateObj > order.date) {
+              order.date = dateObj;
+              order.dateLabel = dateFmt.format(dateObj);
+            }
+            if (!latestDate || dateObj > latestDate) {
+              latestDate = dateObj;
+            }
+          }
+
+          const productName = row.product ? String(row.product).trim() || 'Sin producto' : 'Sin producto';
+          if (!productsMap.has(productName)) {
+            productsMap.set(productName, { name: productName, net: 0, profit: 0, units: 0 });
+          }
+          const product = productsMap.get(productName);
+          product.net += net;
+          product.profit += profit;
+          product.units += units;
+        });
+
+        const orders = Array.from(ordersMap.values());
+        const statusesMap = new Map();
+        orders.forEach(order => {
+          const label = order.status || 'Procesando';
+          if (!statusesMap.has(label)) {
+            statusesMap.set(label, { label, total: 0, count: 0 });
+          }
+          const entry = statusesMap.get(label);
+          entry.total += order.net;
+          entry.count += 1;
+        });
+
+        return {
+          summary,
+          orders,
+          products: Array.from(productsMap.values()),
+          statuses: Array.from(statusesMap.values()),
+          latestDate
+        };
+      }
+
+      function applyRevenueData(rows) {
+        if (!Array.isArray(rows) || !rows.length) {
+          summaryRow.innerHTML = '';
+          if (ordersBody) {
+            ordersBody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">Sin registros de ingresos.</td></tr>`;
+          }
+          if (productsBody) {
+            productsBody.innerHTML = `<tr><td colspan="4" class="text-center text-muted py-4">Sin información de productos.</td></tr>`;
+          }
+          if (statusList) {
+            statusList.innerHTML = `<li class="list-group-item text-center text-muted">Sin registros.</li>`;
+          }
+          if (lastUpdateEl) {
+            lastUpdateEl.textContent = 'Sin datos cargados.';
+          }
+          showNotice('warning', 'No se encontraron registros de ingresos.');
+          return;
+        }
+
+        const analysis = computeAggregations(rows);
+        hideNotice();
+
+        const marginPct = analysis.summary.net > 0 ? (analysis.summary.profit / analysis.summary.net) * 100 : 0;
+        const cards = [
+          {
+            title: 'Ingresos netos',
+            value: formatCurrency(analysis.summary.net),
+            subtitle: `Ventas brutas: ${formatCurrency(analysis.summary.gross)}`
+          },
+          {
+            title: 'Utilidad generada',
+            value: formatCurrency(analysis.summary.profit),
+            subtitle: `Margen total ${marginPct.toFixed(1)}%`
+          },
+          {
+            title: 'Descuentos aplicados',
+            value: formatCurrency(analysis.summary.discounts),
+            subtitle: analysis.summary.discounts ? 'Promociones y cupones' : 'Sin descuentos registrados'
+          },
+          {
+            title: 'Órdenes procesadas',
+            value: formatNumber(analysis.orders.length),
+            subtitle: `Unidades vendidas: ${formatNumber(analysis.summary.units)}`
+          }
+        ];
+
+        summaryRow.innerHTML = cards
+          .map(card => `
+            <div class="col-sm-6 col-xl-3 mb-3">
+              <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                  <p class="text-muted text-uppercase small mb-1">${card.title}</p>
+                  <h3 class="mb-2">${card.value}</h3>
+                  <p class="text-muted mb-0">${card.subtitle}</p>
+                </div>
+              </div>
+            </div>
+          `)
+          .join('');
+
+        if (ordersBody) {
+          const sortedOrders = analysis.orders
+            .slice()
+            .sort((a, b) => {
+              const aTime = a.date ? a.date.getTime() : 0;
+              const bTime = b.date ? b.date.getTime() : 0;
+              if (bTime !== aTime) return bTime - aTime;
+              return b.net - a.net;
+            })
+            .slice(0, 12);
+
+          ordersBody.innerHTML = sortedOrders.length
+            ? sortedOrders
+                .map(order => `
+                  <tr>
+                    <td>${order.displayId}</td>
+                    <td>
+                      ${order.customer}
+                      <div class="small text-muted">${order.dateLabel || '—'}</div>
+                    </td>
+                    <td>${statusBadge(order.status)}</td>
+                    <td class="text-right">${formatCurrency(order.net)}</td>
+                    <td class="text-right">${formatCurrency(order.discount)}</td>
+                    <td class="text-right">${formatCurrency(order.profit)}</td>
+                  </tr>
+                `)
+                .join('')
+            : `<tr><td colspan="6" class="text-center text-muted py-4">Sin registros de ingresos.</td></tr>`;
+        }
+
+        if (productsBody) {
+          const topProducts = analysis.products
+            .filter(product => product.net !== 0 || product.units !== 0 || product.profit !== 0)
+            .sort((a, b) => b.net - a.net)
+            .slice(0, 5);
+
+          productsBody.innerHTML = topProducts.length
+            ? topProducts
+                .map(product => `
+                  <tr>
+                    <td>${product.name}</td>
+                    <td class="text-right">${formatCurrency(product.net)}</td>
+                    <td class="text-right">${formatCurrency(product.profit)}</td>
+                    <td class="text-right">${formatNumber(product.units)}</td>
+                  </tr>
+                `)
+                .join('')
+            : `<tr><td colspan="4" class="text-center text-muted py-4">Sin información de productos.</td></tr>`;
+        }
+
+        if (statusList) {
+          const sortedStatuses = analysis.statuses
+            .slice()
+            .sort((a, b) => b.total - a.total);
+
+          statusList.innerHTML = sortedStatuses.length
+            ? sortedStatuses
+                .map(status => `
+                  <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                      <strong>${status.label}</strong>
+                      <div class="small text-muted">${describeOrdersCount(status.count)}</div>
+                    </div>
+                    <span class="badge badge-primary badge-pill">${formatCurrency(status.total)}</span>
+                  </li>
+                `)
+                .join('')
+            : `<li class="list-group-item text-center text-muted">Sin registros.</li>`;
+        }
+
+        if (lastUpdateEl) {
+          const ordersText = describeOrdersCount(analysis.orders.length);
+          if (analysis.latestDate) {
+            lastUpdateEl.textContent = `Última venta: ${dateFmt.format(analysis.latestDate)} · ${ordersText}`;
+          } else {
+            lastUpdateEl.textContent = `Registros procesados: ${ordersText}`;
+          }
+        }
+      }
+
+      async function loadRevenueData() {
+        if (refreshBtn) {
+          refreshBtn.disabled = true;
+          refreshBtn.classList.add('disabled');
+        }
+        showNotice('info', 'Cargando información de ingresos...');
+        try {
+          const response = await fetch('api/dashboard-data.php', {
+            headers: { Accept: 'application/json' }
+          });
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          const payload = await response.json();
+          const rows = Array.isArray(payload.rows) ? payload.rows : [];
+          applyRevenueData(rows);
+        } catch (error) {
+          console.error('Error cargando ingresos', error);
+          showNotice('danger', error.message || 'No se pudieron cargar los ingresos.');
+          if (ordersBody) {
+            ordersBody.innerHTML = `<tr><td colspan="6" class="text-center text-danger py-4">Error al cargar datos.</td></tr>`;
+          }
+          if (productsBody) {
+            productsBody.innerHTML = `<tr><td colspan="4" class="text-center text-danger py-4">Error al cargar datos.</td></tr>`;
+          }
+          if (statusList) {
+            statusList.innerHTML = `<li class="list-group-item text-center text-danger">Error al cargar datos.</li>`;
+          }
+          if (lastUpdateEl) {
+            lastUpdateEl.textContent = 'Sin datos cargados.';
+          }
+        } finally {
+          if (refreshBtn) {
+            refreshBtn.disabled = false;
+            refreshBtn.classList.remove('disabled');
+          }
+        }
+      }
+
+      if (refreshBtn) {
+        refreshBtn.addEventListener('click', loadRevenueData);
+      }
+
+      loadRevenueData();
+    })();
+  </script>
+
   <script>
   // ==== SESSION / AUTH UTILS (frontend) ====
   const TOKEN_KEYS = ['auth_token', 'token', 'jwt', 'api_key'];
@@ -1233,12 +1684,7 @@
     });
   })();
 </script>
-
-  
-  
-  
-  
-  
+  <script type="module" src="Js/settings.js"></script>
   <script type="module">
   // ======= CONFIG API =======
   const API_BASE = 'https://joyeria-full-stack-production.up.railway.app';

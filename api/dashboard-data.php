@@ -24,6 +24,29 @@ if ($from) { $where[] = "$dateExpr >= :from"; $params[':from'] = $from; }
 if ($to)   { $where[] = "$dateExpr < DATE_ADD(:to, INTERVAL 1 DAY)"; $params[':to'] = $to; }
 $whereSql = $where ? "WHERE " . implode(" AND ", $where) : "";
 
+function tableExists(PDO $pdo, $table) {
+  $stmt = $pdo->prepare("
+    SELECT COUNT(*)
+    FROM INFORMATION_SCHEMA.TABLES
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = :table
+  ");
+  $stmt->execute([':table' => $table]);
+  return (int)$stmt->fetchColumn() > 0;
+}
+
+function columnExists(PDO $pdo, $table, $column) {
+  $stmt = $pdo->prepare("
+    SELECT COUNT(*)
+    FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = :table
+      AND COLUMN_NAME = :column
+  ");
+  $stmt->execute([':table' => $table, ':column' => $column]);
+  return (int)$stmt->fetchColumn() > 0;
+}
+
 /* ---------- util ---------- */
 function bandFromPct($pct){
   if ($pct >= 30) return '30%+';
@@ -37,6 +60,87 @@ try {
   /* -------- Detecta columnas/tablas opcionales -------- */
   $hasCuponId = false;
   $hasCategoria = false;
+
+  $customerIdExpr   = "NULL";
+  $customerNameExpr = "CONCAT('Cliente #', o.orden_id)";
+  $joinCliente      = "";
+
+  if (columnExists($pdo, 'orden', 'nombre_cliente')) {
+    $customerNameExpr = "COALESCE(NULLIF(o.nombre_cliente,''), {$customerNameExpr})";
+  }
+  if (columnExists($pdo, 'orden', 'correo_cliente')) {
+    $customerNameExpr = "COALESCE(NULLIF(o.nombre_cliente,''), NULLIF(o.correo_cliente,''), {$customerNameExpr})";
+  }
+
+  if (columnExists($pdo, 'orden', 'cliente_id')) {
+    $customerIdExpr = "o.cliente_id";
+    $clienteTable = null;
+    if (tableExists($pdo, 'cliente')) {
+      $clienteTable = 'cliente';
+    } elseif (tableExists($pdo, 'clientes')) {
+      $clienteTable = 'clientes';
+    }
+
+    if ($clienteTable) {
+      $clientePk = 'cliente_id';
+      if (!columnExists($pdo, $clienteTable, $clientePk)) {
+        if (columnExists($pdo, $clienteTable, 'id')) {
+          $clientePk = 'id';
+        } elseif (columnExists($pdo, $clienteTable, 'usuario_id')) {
+          $clientePk = 'usuario_id';
+        } else {
+          $clientePk = null;
+        }
+      }
+
+      if ($clientePk) {
+        $joinCliente = "LEFT JOIN {$clienteTable} cli ON cli.{$clientePk} = o.cliente_id";
+
+        $nameParts = [];
+        if (columnExists($pdo, $clienteTable, 'nombre')) {
+          $nameParts[] = "NULLIF(cli.nombre,'')";
+        }
+        if (columnExists($pdo, $clienteTable, 'nombres')) {
+          $nameParts[] = "NULLIF(cli.nombres,'')";
+        }
+        if (columnExists($pdo, $clienteTable, 'apellidos')) {
+          $nameParts[] = "NULLIF(cli.apellidos,'')";
+        }
+        if (columnExists($pdo, $clienteTable, 'apellido')) {
+          $nameParts[] = "NULLIF(cli.apellido,'')";
+        }
+
+        $customerOptions = [];
+        if ($nameParts) {
+          $customerOptions[] = "NULLIF(CONCAT_WS(' ', " . implode(', ', $nameParts) . "), '')";
+        }
+        if (columnExists($pdo, $clienteTable, 'nombre_completo')) {
+          $customerOptions[] = "NULLIF(cli.nombre_completo,'')";
+        }
+        if (columnExists($pdo, $clienteTable, 'razon_social')) {
+          $customerOptions[] = "NULLIF(cli.razon_social,'')";
+        }
+        if (columnExists($pdo, $clienteTable, 'email')) {
+          $customerOptions[] = "NULLIF(cli.email,'')";
+        }
+        if (columnExists($pdo, $clienteTable, 'correo')) {
+          $customerOptions[] = "NULLIF(cli.correo,'')";
+        }
+
+        $customerOptions[] = $customerNameExpr;
+        $customerNameExpr = 'COALESCE(' . implode(', ', array_unique($customerOptions)) . ')';
+      }
+    }
+  }
+
+  $orderStatusExpr = "NULL";
+  if (columnExists($pdo, 'orden', 'estado')) {
+    $orderStatusExpr = "o.estado";
+  } elseif (columnExists($pdo, 'orden', 'status')) {
+    $orderStatusExpr = "o.status";
+  } elseif (columnExists($pdo, 'orden', 'estatus')) {
+    $orderStatusExpr = "o.estatus";
+  }
 
   // cupon_id en tabla orden
   $q = $pdo->prepare("
@@ -81,12 +185,16 @@ try {
       p.producto_id,
       p.nombre                 AS product,
       $segmentExpr             AS segment,
-      :country                 AS country
+      :country                 AS country,
+      {$customerIdExpr}        AS customerId,
+      {$customerNameExpr}      AS customerName,
+      {$orderStatusExpr}       AS orderStatus
       " . ($useProductCostField ? ", COALESCE(p.costo,0) AS unitCost" : ", 0 AS unitCost") . "
     FROM orden o
     JOIN orden_detalle od ON od.orden_id   = o.orden_id
     JOIN producto      p  ON p.producto_id = od.producto_id
     $joinCategoria
+    $joinCliente
     $whereSql
     $orderStatusFilter
   ";
@@ -160,7 +268,27 @@ try {
 
     $discPct = ($grossLine > 0) ? ($discountLine / $grossLine * 100.0) : 0.0;
 
+    $customerIdRaw = $r['customerId'] ?? null;
+    $customerIdOut = null;
+    if ($customerIdRaw !== null && $customerIdRaw !== '') {
+      $customerIdOut = is_numeric($customerIdRaw) ? (int)$customerIdRaw : (string)$customerIdRaw;
+    }
+
+    $customerNameOut = isset($r['customerName']) ? trim((string)$r['customerName']) : null;
+    if ($customerNameOut === '') {
+      $customerNameOut = null;
+    }
+
+    $orderStatusOut = isset($r['orderStatus']) ? trim((string)$r['orderStatus']) : null;
+    if ($orderStatusOut === '') {
+      $orderStatusOut = null;
+    }
+
     $out[] = [
+      'orderId'      => $orderId,
+      'customerId'   => $customerIdOut,
+      'customerName' => $customerNameOut,
+      'orderStatus'  => $orderStatusOut,
       'segment'      => $r['segment'] ?? 'General',
       'country'      => $r['country'] ?? $defaultCountry,
       'product'      => $r['product'],

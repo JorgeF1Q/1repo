@@ -535,15 +535,6 @@
         <button class="btn active" data-filter="all">
           <span>Todos</span>
         </button>
-        <button class="btn" data-filter="anillos">
-          <span>Anillos</span>
-        </button>
-        <button class="btn" data-filter="collares">
-          <span>Collares</span>
-        </button>
-        <button class="btn" data-filter="aretes">
-          <span>Aretes</span>
-        </button>
       </div>
     </div>
   </div>
@@ -577,13 +568,42 @@
     const listProducts =
       Api.listProducts ?? Api.default?.listProducts ??
       Api.getProducts ?? Api.default?.getProducts;
+    const listCategories =
+      Api.listCategories ?? Api.default?.listCategories ??
+      Api.getCategories ?? Api.default?.getCategories;
 
     if (!listProducts) {
       console.error('No se encontró listProducts en ./Js/api.js');
     }
+    if (!listCategories) {
+      console.warn('No se encontró listCategories en ./Js/api.js. Se usarán las categorías detectadas en los productos.');
+    }
 
     const $ = (sel, ctx=document)=>ctx.querySelector(sel);
     const money = (n)=>`Q ${Number(n||0).toFixed(2)}`;
+
+    const slugify = (value) => (
+      String(value ?? '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .trim()
+    );
+
+    const normalizeCategoryRow = (row) => {
+      const rawName = String(
+        row?.Nombre ?? row?.nombre ?? row?.Categoria ?? row?.categoria ??
+        row?.Name ?? row?.name ?? ''
+      ).trim();
+      const providedSlug = String(row?.Slug ?? row?.slug ?? '').trim();
+      const name = rawName || (providedSlug ? providedSlug : 'Sin categoría');
+      const slug = slugify(providedSlug || name);
+      const id = row?.Id ?? row?.id ?? row?.categoria_id ?? row?.category_id ?? slug;
+      if (!slug) return null;
+      return { id, name, slug };
+    };
 
     const withImgPrefix = (raw) => {
       const r = String(raw||'').trim();
@@ -595,23 +615,104 @@
     const toBool = (v) => typeof v==='boolean' ? v : (String(v).trim()==='1' || String(v).toLowerCase()==='true');
 
     let allProducts = [];
+    let categories = [];
     let currentFilter = 'all';
 
     async function loadData(){
       try{
         const rows = await listProducts();
-        allProducts = (rows||[]).map(p => ({
-          id: p.Id ?? p.id,
-          name: p.Nombre ?? p.name ?? '',
-          price: Number(p.Precio ?? p.price ?? 0),
-          img: withImgPrefix(p.ImagenUrl ?? p.image),
-          stock: Number(p.Stock ?? p.stock ?? 0),
-          active: toBool(p.Activo ?? 1),
-          cat: String(p.Categoria ?? p.categoria ?? '').toLowerCase()
-        }));
+        allProducts = (rows||[]).map(p => {
+          const catNameRaw = String(p.CategoriaNombre ?? p.categoriaNombre ?? p.Categoria ?? p.categoria ?? '').trim();
+          const catSlugRaw = p.CategoriaSlug ?? p.categoriaSlug ?? '';
+          let catSlug = slugify(catSlugRaw || catNameRaw);
+          let catLabel = catNameRaw;
+          if (!catSlug) {
+            catSlug = 'sin-categoria';
+            catLabel = 'Sin categoría';
+          }
+          if (!catLabel) {
+            catLabel = catSlug === 'sin-categoria' ? 'Sin categoría' : catSlug;
+          }
+          return {
+            id: p.Id ?? p.id,
+            name: p.Nombre ?? p.name ?? '',
+            price: Number(p.Precio ?? p.price ?? 0),
+            img: withImgPrefix(p.ImagenUrl ?? p.image),
+            stock: Number(p.Stock ?? p.stock ?? 0),
+            active: toBool(p.Activo ?? 1),
+            cat: catSlug,
+            catName: catLabel
+          };
+        });
       }catch(e){
         console.error('Error listando productos', e);
         allProducts = [];
+      }
+    }
+
+    async function loadCategories(){
+      if (!listCategories) { categories = []; return; }
+      try {
+        const rows = await listCategories();
+        categories = (rows || [])
+          .map(normalizeCategoryRow)
+          .filter(Boolean);
+      } catch (err) {
+        console.error('Error listando categorías', err);
+        categories = [];
+      }
+    }
+
+    function getCategoryList(){
+      const map = new Map();
+
+      categories.forEach(cat => {
+        if (!cat?.slug) return;
+        map.set(cat.slug, cat.name || cat.slug);
+      });
+
+      allProducts.forEach(p => {
+        const slug = p.cat;
+        if (!slug) return;
+        if (!map.has(slug)) {
+          const label = p.catName?.trim() || slug;
+          map.set(slug, label);
+        }
+      });
+
+      return Array.from(map, ([slug, name]) => ({ slug, name }))
+        .sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }));
+    }
+
+    function renderCategoryFilters(){
+      const group = $('#categoryFilters');
+      if (!group) return;
+
+      const catList = getCategoryList();
+      const active = currentFilter;
+
+      group.innerHTML = '';
+
+      const addButton = (value, label, isActive=false) => {
+        const btn = document.createElement('button');
+        btn.className = 'btn';
+        if (isActive) btn.classList.add('active');
+        btn.dataset.filter = value;
+        btn.innerHTML = `<span>${label}</span>`;
+        group.appendChild(btn);
+      };
+
+      addButton('all', 'Todos', active === 'all');
+
+      catList.forEach(cat => {
+        const isActive = cat.slug === active;
+        addButton(cat.slug, cat.name, isActive);
+      });
+
+      if (!group.querySelector('.btn.active')) {
+        currentFilter = 'all';
+        const allBtn = group.querySelector('button[data-filter="all"]');
+        if (allBtn) allBtn.classList.add('active');
       }
     }
 
@@ -674,7 +775,8 @@
     })();
 
     bindFilters();
-    await loadData();
+    await Promise.all([loadCategories(), loadData()]);
+    renderCategoryFilters();
     render();
   </script>
 </body>

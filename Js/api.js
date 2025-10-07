@@ -8,6 +8,17 @@ export async function getProducts() {
   return res.json();
 }
 
+// Categorías
+export async function getCategories() {
+  const res = await fetch(`${API_BASE}/api/categories`);
+  if (!res.ok) throw new Error('No se pudieron cargar las categorías');
+  return res.json();
+}
+
+// Alias comunes
+export const listProducts = getProducts;
+export const listCategories = getCategories;
+
 // Cupones
 export async function validateCoupon(code, subtotal) {
   if (!code) {

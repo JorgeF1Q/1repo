@@ -425,9 +425,6 @@
         <div class="col-lg-3 col-md-6 col-12 mb-3 mb-lg-0">
           <select id="cat" class="custom-select">
             <option value="">Todas las categorías</option>
-            <option value="anillos">Anillos</option>
-            <option value="collares">Collares</option>
-            <option value="aretes">Aretes</option>
           </select>
         </div>
         <div class="col-lg-3 col-md-6 col-12 mb-3 mb-lg-0">
@@ -464,13 +461,26 @@
 
   const API_BASE = Api.API_BASE ?? Api.default?.API_BASE ?? '';
   const listProducts = Api.listProducts || Api.default?.listProducts || Api.getProducts || Api.default?.getProducts || null;
+  const listCategories = Api.listCategories || Api.default?.listCategories || Api.getCategories || Api.default?.getCategories || null;
 
   if (!listProducts) {
     console.error('No encuentro listProducts en Js/api.js. Exporta listProducts o renómbralo aquí.');
   }
+  if (!listCategories) {
+    console.warn('No encuentro listCategories en Js/api.js. Usa listCategories/getCategories si está disponible.');
+  }
 
     const $ = (sel, ctx=document) => ctx.querySelector(sel);
     const money = (n) => `Q ${Number(n||0).toFixed(2)}`;
+    const slugify = (value) => (
+      String(value ?? '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .trim()
+    );
     const CART_KEY = 'cart';
 
     const readCart = () => { try { return JSON.parse(localStorage.getItem(CART_KEY)||'[]'); } catch { return []; } };
@@ -502,14 +512,29 @@
     }
 
     const params = new URLSearchParams(location.search);
+    const rawCatParam = params.get('cat');
+    const normalizedCat = slugify(rawCatParam || '');
     const state = {
       q: params.get('q') || '',
-      cat: params.get('cat') || '',
+      cat: normalizedCat === 'all' ? '' : normalizedCat,
       sort: params.get('sort') || 'name-asc',
       onlyStock: params.get('inStock') === 'true'
     };
-    $('#q').value = state.q; $('#cat').value = state.cat; $('#sort').value = state.sort;
+    $('#q').value = state.q; $('#sort').value = state.sort;
     $('#onlyStock').checked = state.onlyStock;
+
+    const normalizeCategoryRow = (row) => {
+      const rawName = String(
+        row?.Nombre ?? row?.nombre ?? row?.Categoria ?? row?.categoria ??
+        row?.Name ?? row?.name ?? ''
+      ).trim();
+      const providedSlug = String(row?.Slug ?? row?.slug ?? '').trim();
+      const name = rawName || (providedSlug ? providedSlug : 'Sin categoría');
+      const slug = slugify(providedSlug || name);
+      const id = row?.Id ?? row?.id ?? row?.categoria_id ?? row?.category_id ?? slug;
+      if (!slug) return null;
+      return { id, name, slug };
+    };
 
     const withImgPrefix = (raw) => {
       const r = String(raw||'').trim();
@@ -526,6 +551,20 @@
     };
 
     let allProducts = [], viewProducts = [];
+    let categories = [];
+
+    async function fetchCategories(){
+      if (!listCategories) { categories = []; return; }
+      try {
+        const rows = await listCategories();
+        categories = (rows || [])
+          .map(normalizeCategoryRow)
+          .filter(Boolean);
+      } catch (err) {
+        console.error('Error obteniendo categorías', err);
+        categories = [];
+      }
+    }
 
     async function fetchProducts(){
       try {
@@ -541,12 +580,29 @@
           const img  = withImgPrefix(p.ImagenUrl ?? p.image);
           const stock= Number(p.Stock ?? p.stock ?? 0);
           const activo = toBool(p.Activo ?? 1);
-          const cat  = String(p.Categoria ?? p.categoria ?? '').toLowerCase();
+          const catNameRaw = String(p.CategoriaNombre ?? p.categoriaNombre ?? p.Categoria ?? p.categoria ?? '').trim();
+          const catSlugRaw = p.CategoriaSlug ?? p.categoriaSlug ?? '';
+          let catSlug = slugify(catSlugRaw || catNameRaw);
+          let catLabel = catNameRaw;
+          if (!catSlug) {
+            catSlug = 'sin-categoria';
+            catLabel = 'Sin categoría';
+          }
+          if (!catLabel) {
+            catLabel = catSlug === 'sin-categoria' ? 'Sin categoría' : catSlug;
+          }
           const mat  = String(p.Material ?? p.material ?? '').toLowerCase();
 
           return {
-            _id: id, _name: name, _price: price, _img: img,
-            _stock: stock, _active: activo, _cat: cat, _mat: mat
+            _id: id,
+            _name: name,
+            _price: price,
+            _img: img,
+            _stock: stock,
+            _active: activo,
+            _cat: catSlug,
+            _catLabel: catLabel,
+            _mat: mat
           };
         });
       } catch (err){
@@ -555,11 +611,60 @@
       }
     }
 
+    function getCategoryList(){
+      const map = new Map();
+
+      categories.forEach(cat => {
+        if (!cat?.slug) return;
+        map.set(cat.slug, cat.name || cat.slug);
+      });
+
+      allProducts.forEach(p => {
+        const slug = p._cat;
+        if (!slug) return;
+        if (!map.has(slug)) {
+          const label = p._catLabel?.trim() || slug;
+          map.set(slug, label);
+        }
+      });
+
+      return Array.from(map, ([slug, name]) => ({ slug, name }))
+        .sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }));
+    }
+
+    function renderCategorySelect(){
+      const select = $('#cat');
+      if (!select) return;
+
+      const previous = state.cat;
+      const catList = getCategoryList();
+
+      select.innerHTML = '';
+
+      const makeOption = (value, label) => {
+        const option = document.createElement('option');
+        option.value = value;
+        option.textContent = label;
+        return option;
+      };
+
+      select.appendChild(makeOption('', 'Todas las categorías'));
+      catList.forEach(cat => select.appendChild(makeOption(cat.slug, cat.name)));
+
+      const hasCurrent = catList.some(cat => cat.slug === previous);
+      state.cat = hasCurrent ? previous : '';
+      select.value = state.cat;
+
+      if (previous !== state.cat) {
+        updateURL();
+      }
+    }
+
     function applyFilters(){
       viewProducts = allProducts.slice();
 
       if (state.cat) {
-        const c = state.cat.toLowerCase();
+        const c = state.cat;
         viewProducts = viewProducts.filter(p => p._cat === c);
       }
 
@@ -567,6 +672,7 @@
         const q = state.q.toLowerCase();
         viewProducts = viewProducts.filter(p =>
           (p._name||'').toLowerCase().includes(q) ||
+          (p._catLabel||'').toLowerCase().includes(q) ||
           (p._cat||'').includes(q) ||
           (p._mat||'').includes(q)
         );
@@ -639,11 +745,18 @@
     $('#sort').addEventListener('change', ()=>{ state.sort=$('#sort').value; updateURL(); applyFilters(); render(); });
     $('#onlyStock').addEventListener('change', async ()=>{
       state.onlyStock = $('#onlyStock').checked; updateURL();
-      await fetchProducts(); applyFilters(); render();
+      await fetchProducts();
+      renderCategorySelect();
+      applyFilters();
+      render();
     });
 
     updateCartBadge();
-    await fetchProducts(); applyFilters(); render();
+    await fetchCategories();
+    await fetchProducts();
+    renderCategorySelect();
+    applyFilters();
+    render();
     window.addEventListener('storage', (e)=>{ if (e.key==='cart') updateCartBadge(); });
   </script>
 </body>

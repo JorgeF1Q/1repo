@@ -12,7 +12,14 @@ function saveSession({ token, user }) {
 }
 
 function redirectByRole(role) {
-  window.location.href = (role === 'admin') ? 'admin.html' : 'index.html';
+  const normalized = (role || '').toString().trim().toLowerCase();
+  if (normalized === 'admin') {
+    window.location.href = 'admin.html';
+  } else if (normalized === 'vendedor' || normalized === 'seller') {
+    window.location.href = 'ventas.html';
+  } else {
+    window.location.href = 'index.html';
+  }
 }
 
 function showError(msg){ alert(msg || 'Error inesperado'); }

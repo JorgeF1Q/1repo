@@ -1,73 +1,37 @@
-const API_BASE = 'https://joyeria-full-stack-production.up.railway.app'; // ✅
-
-/* ====== Guardas de sesión ====== */
+const allowedVendorRoles = new Set(['vendedor', 'seller']);
 const token = localStorage.getItem('token');
-const role  = localStorage.getItem('role');
-// En auth.js guardas con la clave 'email', no 'userEmail'
-const email = localStorage.getItem('email'); // ✅
+const storedRole = localStorage.getItem('role');
+const normalizedRole = (storedRole || '').trim().toLowerCase();
 
-if (!token || role !== 'admin') {
-  const next = encodeURIComponent('admin.html');
+if (!token || !allowedVendorRoles.has(normalizedRole)) {
+  const next = encodeURIComponent('ventas.html');
   window.location.href = `login.html?next=${next}`;
 }
 
-document.getElementById('adminEmail').textContent = email || '';
+const vendorName = localStorage.getItem('name') || '—';
+const vendorEmail = localStorage.getItem('email') || '—';
 
-document.getElementById('logoutBtn').addEventListener('click', () => {
+const vendorNameLabel = document.getElementById('vendorName');
+const vendorEmailLabel = document.getElementById('vendorEmail');
+
+if (vendorNameLabel) vendorNameLabel.textContent = vendorName;
+if (vendorEmailLabel) vendorEmailLabel.textContent = vendorEmail;
+
+document.getElementById('logoutVendor')?.addEventListener('click', () => {
   localStorage.removeItem('token');
   localStorage.removeItem('role');
-  localStorage.removeItem('email'); // ✅ coherente con auth.js
+  localStorage.removeItem('name');
+  localStorage.removeItem('email');
   window.location.href = 'index.html';
 });
 
-/* ====== UI refs ====== */
-const $tbody        = document.querySelector('#tblProductos tbody');
-const $ordersTbody  = document.querySelector('#tblPedidos tbody');
-const salesNavBtn   = document.querySelector('.nav-btn[data-section="sales"]');
-const $modal        = $('#modalProducto');
-const $frm          = document.getElementById('frmProducto');
-const money         = new Intl.NumberFormat('es-GT', { style:'currency', currency:'GTQ' });
-
-/* Dropzone refs */
-const dropZone   = document.getElementById('dropZone');
-const fileInput  = document.getElementById('fileInput');
-const imgPreview = document.getElementById('imgPreview');
-
-/* ====== Helpers HTTP ====== */
-async function apiFetch(path, options = {}) {
-  const res = await fetch(`${API_BASE}${path}`, options);
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || data.message || `HTTP ${res.status}`);
-  return data;
-}
-
-/* ====== Tabla ====== */
-function rowHTML(p) {
-  return `
-    <tr data-id="${p.Id}">
-      <td>${p.Id}</td>
-      <td>${p.Codigo ?? ''}</td>
-      <td>${p.Nombre}</td>
-      <td>${money.format(p.Precio)}</td>
-      <td>${p.Stock}</td>
-      <td>${Number(p.Activo) ? 'Sí' : 'No'}</td>
-      <td class="text-right">
-        <button class="btn btn-sm btn-outline-secondary btn-edit">Editar</button>
-        <button class="btn btn-sm btn-outline-danger btn-del">Borrar</button>
-      </td>
-    </tr>
-  `;
-}
-
-
-const numberFormatter = new Intl.NumberFormat('es-GT', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
-const dateTimeFormatter = new Intl.DateTimeFormat('es-GT', { dateStyle: 'medium', timeStyle: 'short' });
-
+const $ordersTbody = document.querySelector('#tblPedidos tbody');
 const ordersAlert = document.getElementById('ordersAlert');
 const ordersReloadBtn = document.getElementById('btnPedidosReload');
 const ordersSearchInput = document.getElementById('ordersSearch');
 const ordersClearBtn = document.getElementById('ordersClearFilters');
 const ordersStatusCheckboxes = document.querySelectorAll('[data-order-status-filter]');
+
 const orderModalElement = document.getElementById('modalPedidoEstado');
 const orderModal = $('#modalPedidoEstado');
 const orderModalForm = document.getElementById('frmPedidoEstado');
@@ -91,6 +55,10 @@ const orderNotesInput = document.getElementById('orderNotes');
 const orderModalCancelBtn = document.getElementById('orderModalCancelBtn');
 const orderModalSubmitBtn = document.getElementById('orderModalSubmitBtn');
 
+const money = new Intl.NumberFormat('es-GT', { style: 'currency', currency: 'GTQ' });
+const numberFormatter = new Intl.NumberFormat('es-GT', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+const dateTimeFormatter = new Intl.DateTimeFormat('es-GT', { dateStyle: 'medium', timeStyle: 'short' });
+
 const DEFAULT_ORDER_STATUSES = ['pendiente', 'enviado'];
 const ordersState = {
   list: [],
@@ -99,8 +67,8 @@ const ordersState = {
   search: '',
 };
 
-let ordersAlertTimer = null;
 let currentOrderDetail = null;
+let ordersAlertTimer = null;
 
 function escapeHtml(value) {
   if (value === null || value === undefined) return '';
@@ -162,11 +130,6 @@ function parseDateValue(value) {
   if (!Number.isNaN(date.getTime())) return date;
   const fallback = new Date(value);
   return Number.isNaN(fallback.getTime()) ? null : fallback;
-}
-
-function getTimestamp(value) {
-  const date = parseDateValue(value);
-  return date ? date.getTime() : 0;
 }
 
 function formatDateTime(value) {
@@ -359,33 +322,51 @@ function renderOrders() {
       return haystack.includes(searchTerm);
     })
     .sort((a, b) => {
-      const bTime = getTimestamp(b.updated_at || b.delivery?.updated_at || b.delivery?.paid_at || b.delivery?.shipped_at || b.created_at);
-      const aTime = getTimestamp(a.updated_at || a.delivery?.updated_at || a.delivery?.paid_at || a.delivery?.shipped_at || a.created_at);
-      if (bTime !== aTime) return bTime - aTime;
-      return (b.id || 0) - (a.id || 0);
+      const aDate = parseDateValue(a.delivery?.updated_at || a.updated_at || a.delivery?.paid_at || a.delivery?.shipped_at || a.created_at);
+      const bDate = parseDateValue(b.delivery?.updated_at || b.updated_at || b.delivery?.paid_at || b.delivery?.shipped_at || b.created_at);
+      return (bDate?.getTime() || 0) - (aDate?.getTime() || 0);
     });
 
   if (!filtered.length) {
-    $ordersTbody.innerHTML = `<tr><td colspan="8" class="text-center text-muted py-4">No se encontraron pedidos con los filtros seleccionados.</td></tr>`;
+    $ordersTbody.innerHTML = `
+      <tr>
+        <td colspan="8" class="text-center text-muted py-4">No se encontraron pedidos con los filtros seleccionados.</td>
+      </tr>
+    `;
     return;
   }
 
   $ordersTbody.innerHTML = filtered.map(pedidoRowHTML).join('');
 }
 
-function showOrdersAlert(type, message, options = {}) {
+function setLoadingButton(btn, loading, text = 'Guardando...') {
+  if (!btn) return;
+  if (loading) {
+    if (!btn.dataset.originalHtml) {
+      btn.dataset.originalHtml = btn.innerHTML;
+    }
+    btn.innerHTML = `<span class="spinner-border spinner-border-sm mr-2" role="status" aria-hidden="true"></span>${text}`;
+    btn.disabled = true;
+  } else {
+    if (btn.dataset.originalHtml) {
+      btn.innerHTML = btn.dataset.originalHtml;
+      delete btn.dataset.originalHtml;
+    }
+    btn.disabled = false;
+  }
+}
+
+function showOrdersAlert(type, message) {
   if (!ordersAlert) return;
   ordersAlert.className = `alert alert-${type}`;
   ordersAlert.textContent = message;
   ordersAlert.classList.remove('d-none');
-  if (ordersAlertTimer) clearTimeout(ordersAlertTimer);
-  const autoHide = options.autoHide !== undefined ? options.autoHide : type === 'success';
-  if (autoHide) {
-    const timeout = options.timeout ?? 4000;
-    ordersAlertTimer = window.setTimeout(() => {
-      hideOrdersAlert();
-    }, timeout);
+  if (ordersAlertTimer) {
+    clearTimeout(ordersAlertTimer);
   }
+  ordersAlertTimer = window.setTimeout(() => {
+    hideOrdersAlert();
+  }, 6000);
 }
 
 function hideOrdersAlert() {
@@ -411,44 +392,25 @@ function hideOrderModalAlert() {
   orderModalAlert.textContent = '';
 }
 
-function setLoadingButton(btn, isLoading, loadingText = 'Procesando...') {
-  if (!btn) return;
-  if (isLoading) {
-    if (!btn.dataset.originalHtml) {
-      btn.dataset.originalHtml = btn.innerHTML;
-    }
-    btn.disabled = true;
-    btn.innerHTML = `<span class="spinner-border spinner-border-sm mr-2" role="status" aria-hidden="true"></span>${loadingText}`;
-  } else {
-    if (btn.dataset.originalHtml) {
-      btn.innerHTML = btn.dataset.originalHtml;
-      delete btn.dataset.originalHtml;
-    }
-    btn.disabled = false;
+function setOrderModalFetching(isFetching) {
+  if (orderModalSubmitBtn) {
+    setLoadingButton(orderModalSubmitBtn, isFetching, 'Cargando...');
+  }
+  if (orderModalCancelBtn) {
+    orderModalCancelBtn.disabled = isFetching;
   }
 }
 
-function setOrderModalDisabled(disabled) {
-  [orderStatusSelect, orderDeliveryNameInput, orderDeliveryContactInput, orderPaymentConfirmedInput, orderNotesInput].forEach(el => {
-    if (el) el.disabled = disabled;
-  });
-}
-
-function setOrderModalFetching(isFetching) {
-  setLoadingButton(orderModalSubmitBtn, isFetching, 'Cargando...');
-  if (orderModalCancelBtn) orderModalCancelBtn.disabled = isFetching;
-  setOrderModalDisabled(isFetching);
-}
-
 function setOrderModalLoading(isLoading) {
-  setLoadingButton(orderModalSubmitBtn, isLoading, 'Guardando...');
-  if (orderModalCancelBtn) orderModalCancelBtn.disabled = isLoading;
-  setOrderModalDisabled(isLoading);
+  if (orderModalSubmitBtn) {
+    setLoadingButton(orderModalSubmitBtn, isLoading, 'Guardando...');
+  }
+  if (orderModalCancelBtn) {
+    orderModalCancelBtn.disabled = isLoading;
+  }
 }
 
 function resetOrderModal() {
-  currentOrderDetail = null;
-  hideOrderModalAlert();
   if (orderModalForm) {
     orderModalForm.reset();
     orderModalForm.dataset.orderId = '';
@@ -469,37 +431,12 @@ function resetOrderModal() {
     setLoadingButton(orderModalSubmitBtn, false);
   }
   if (orderModalCancelBtn) orderModalCancelBtn.disabled = false;
-  setOrderModalDisabled(false);
-}
-
-async function fetchOrderDetail(orderId) {
-  const url = `/api/orders.php?id=${orderId}&with=items`;
-  const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok || data.error) {
-    throw new Error(data.error || data.message || 'No se encontró la orden solicitada.');
-  }
-  return normalizeOrderFromApi(data.order ?? {});
-}
-
-async function updateOrderStatus(id, payload, { includeItems = false } = {}) {
-  const params = new URLSearchParams();
-  if (includeItems) params.set('with', 'items');
-  const res = await fetch(`/api/orders.php?id=${id}${params.toString() ? `&${params.toString()}` : ''}`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-    body: JSON.stringify(payload)
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok || data.error) {
-    throw new Error(data.error || data.message || 'No se pudo actualizar el pedido.');
-  }
-  return normalizeOrderFromApi(data.order ?? {});
+  hideOrderModalAlert();
 }
 
 function fillOrderModal(order, options = {}) {
   if (!orderModalTitle) return;
-  if (orderModalTitle) orderModalTitle.textContent = order.code ? `Orden ${order.code}` : `Orden #${order.id}`;
+  orderModalTitle.textContent = order.code ? `Orden ${order.code}` : `Orden #${order.id}`;
   if (orderModalIdInput) orderModalIdInput.value = order.id ?? '';
   if (orderModalForm) orderModalForm.dataset.orderId = order.id ?? '';
   if (orderModalCustomer) orderModalCustomer.textContent = order.customer?.name || 'Cliente sin nombre';
@@ -558,6 +495,33 @@ function fillOrderModal(order, options = {}) {
   if (options.focusField === 'delivery' && orderDeliveryNameInput) {
     setTimeout(() => orderDeliveryNameInput.focus(), 200);
   }
+}
+
+async function fetchOrderDetail(orderId) {
+  const params = new URLSearchParams({ id: orderId, with: 'items' });
+  const res = await fetch(`/api/orders.php?${params.toString()}`, {
+    headers: { 'Accept': 'application/json' },
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || data.error || !data.order) {
+    throw new Error(data.error || data.message || 'No se encontró la orden solicitada.');
+  }
+  return normalizeOrderFromApi(data.order ?? {});
+}
+
+async function updateOrderStatus(id, payload, { includeItems = false } = {}) {
+  const params = new URLSearchParams();
+  if (includeItems) params.set('with', 'items');
+  const res = await fetch(`/api/orders.php?id=${id}${params.toString() ? `&${params.toString()}` : ''}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || data.error) {
+    throw new Error(data.error || data.message || 'No se pudo actualizar el pedido.');
+  }
+  return normalizeOrderFromApi(data.order ?? {});
 }
 
 async function openOrderModal(orderId, options = {}) {
@@ -715,22 +679,20 @@ async function loadPedidos({ showLoader = true } = {}) {
     params.set('limit', '200');
 
     const res = await fetch(`/api/orders.php${params.toString() ? `?${params.toString()}` : ''}`, {
-      headers: { 'Accept': 'application/json' }
+      headers: { 'Accept': 'application/json' },
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok || data.error) {
-      throw new Error(data.error || data.message || 'No se pudieron cargar los pedidos.');
+      throw new Error(data.error || data.message || 'No se pudo cargar la lista de pedidos.');
     }
     const orders = Array.isArray(data.orders)
       ? data.orders
-      : Array.isArray(data.data)
-        ? data.data
-        : [];
+      : (Array.isArray(data.data) ? data.data : []);
     ordersState.list = orders.map(normalizeOrderFromApi);
     renderOrders();
   } catch (err) {
     console.error(err);
-    showOrdersAlert('danger', err.message || 'Error al cargar pedidos.');
+    showOrdersAlert('danger', err.message || 'No se pudo cargar la lista de pedidos.');
     if (!$ordersTbody.innerHTML.trim()) {
       $ordersTbody.innerHTML = `<tr><td colspan="8" class="text-center text-danger py-4">${escapeHtml(err.message || 'Error al cargar pedidos.')}</td></tr>`;
     }
@@ -748,17 +710,13 @@ ordersStatusCheckboxes.forEach(cb => {
   cb.addEventListener('change', () => {
     const selected = new Set();
     ordersStatusCheckboxes.forEach(box => {
-      if (box.checked) selected.add(normalizeStatusValue(box.value));
+      const value = normalizeStatusValue(box.value);
+      if (box.checked) {
+        selected.add(value);
+      }
     });
-    if (!selected.size) {
-      DEFAULT_ORDER_STATUSES.forEach(status => selected.add(status));
-      ordersStatusCheckboxes.forEach(box => {
-        box.checked = selected.has(normalizeStatusValue(box.value));
-      });
-    }
     ordersState.statusFilters = selected;
     renderOrders();
-    loadPedidos({ showLoader: true });
   });
 });
 
@@ -778,6 +736,11 @@ if (ordersClearBtn) {
       box.checked = ordersState.statusFilters.has(normalizeStatusValue(box.value));
     });
     renderOrders();
+  });
+}
+
+if (ordersReloadBtn) {
+  ordersReloadBtn.addEventListener('click', () => {
     loadPedidos({ showLoader: true });
   });
 }
@@ -797,177 +760,9 @@ if (orderModalCancelBtn) {
 
 if (orderModalElement) {
   orderModal.on('hidden.bs.modal', () => {
+    currentOrderDetail = null;
     resetOrderModal();
   });
 }
 
-if (ordersReloadBtn) {
-  ordersReloadBtn.addEventListener('click', () => {
-    loadPedidos({ showLoader: true });
-  });
-}
-
-async function loadProductos() {
-  const list = await apiFetch('/api/products'); // ✅ absoluto
-  $tbody.innerHTML = list.map(rowHTML).join('');
-}
-loadProductos();
-
-if (salesNavBtn) {
-  salesNavBtn.addEventListener('click', () => {
-    loadPedidos();
-  });
-}
-
-loadPedidos();
-
-/* ====== Crear ====== */
-document.querySelector('[data-target="#modalProducto"]').addEventListener('click', () => {
-  document.getElementById('modalTitle').textContent = 'Nuevo producto';
-  $frm.reset();
-  document.getElementById('p_id').value = '';
-  imgPreview.classList.add('d-none');
-  imgPreview.src = '';
-});
-
-/* ====== Guardar (crear/editar) ====== */
-$frm.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const id = document.getElementById('p_id').value.trim();
-
-  const payload = {
-    Codigo:    document.getElementById('p_codigo').value.trim(),
-    Nombre:    document.getElementById('p_nombre').value.trim(),
-    Precio:    Number(document.getElementById('p_precio').value || 0),
-    Stock:     Number(document.getElementById('p_stock').value || 0),
-    Activo:    Number(document.getElementById('p_activo').value || 1),
-    Categoria: document.getElementById('p_categoria').value.trim(),
-    Material:  document.getElementById('p_material').value.trim(),
-    ImagenUrl: document.getElementById('p_imagen').value.trim()
-  };
-
-  const opts = {
-    method: id ? 'PUT' : 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`
-    },
-    body: JSON.stringify(payload)
-  };
-
-  const path = id ? `/api/products/${id}` : '/api/products';
-  await apiFetch(path, opts); // ✅ absoluto + manejo de error
-  $modal.modal('hide');
-  await loadProductos();
-});
-
-/* ====== Editar / Borrar ====== */
-$tbody.addEventListener('click', async (e) => {
-  const tr = e.target.closest('tr');
-  if (!tr) return;
-  const id = tr.getAttribute('data-id');
-
-  if (e.target.classList.contains('btn-edit')) {
-    document.getElementById('modalTitle').textContent = 'Editar producto';
-    const p = await apiFetch(`/api/products/${id}`); // ✅
-
-    document.getElementById('p_id').value        = p.Id;
-    document.getElementById('p_codigo').value    = p.Codigo || '';
-    document.getElementById('p_nombre').value    = p.Nombre || '';
-    document.getElementById('p_precio').value    = p.Precio || 0;
-    document.getElementById('p_stock').value     = p.Stock || 0;
-    document.getElementById('p_activo').value    = Number(p.Activo ? 1 : 0);
-    document.getElementById('p_categoria').value = p.Categoria || '';
-    document.getElementById('p_material').value  = p.Material || '';
-    document.getElementById('p_imagen').value    = p.ImagenUrl || '';
-
-    if (p.ImagenUrl) {
-      imgPreview.src = p.ImagenUrl;
-      imgPreview.classList.remove('d-none');
-    } else {
-      imgPreview.classList.add('d-none');
-      imgPreview.src = '';
-    }
-
-    $modal.modal('show');
-  }
-
-  if (e.target.classList.contains('btn-del')) {
-    if (!confirm('¿Borrar este producto?')) return;
-    await apiFetch(`/api/products/${id}`, {
-      method: 'DELETE',
-      headers: { 'Authorization': `Bearer ${token}` }
-    }); // ✅
-    await loadProductos();
-  }
-});
-
-/* ====== Drag & Drop / Subida de imagen ====== */
-
-function openFilePicker() {
-  fileInput.click();
-}
-
-// click en el dropzone
-dropZone.addEventListener('click', openFilePicker);
-
-// resaltar cuando arrastras
-['dragenter', 'dragover'].forEach(ev =>
-  dropZone.addEventListener(ev, (e) => {
-    e.preventDefault(); e.stopPropagation();
-    dropZone.classList.add('dragover');
-  })
-);
-['dragleave', 'drop'].forEach(ev =>
-  dropZone.addEventListener(ev, (e) => {
-    e.preventDefault(); e.stopPropagation();
-    dropZone.classList.remove('dragover');
-  })
-);
-
-// soltar archivo
-dropZone.addEventListener('drop', (e) => {
-  const files = e.dataTransfer.files;
-  if (files && files[0]) handleFile(files[0]);
-});
-
-// file input manual
-fileInput.addEventListener('change', (e) => {
-  const file = e.target.files?.[0];
-  if (file) handleFile(file);
-});
-
-async function handleFile(file) {
-  const productId = document.getElementById('p_id').value.trim();
-  if (!productId) {
-    alert('Primero guarda el producto (para obtener su ID), luego vuelve a editar y sube la imagen.');
-    return;
-  }
-
-  // preview inmediata
-  const reader = new FileReader();
-  reader.onload = () => {
-    imgPreview.src = reader.result;
-    imgPreview.classList.remove('d-none');
-  };
-  reader.readAsDataURL(file);
-
-  try {
-    const formData = new FormData();
-    formData.append('file', file);
-
-    const res = await fetch(`${API_BASE}/api/products/${productId}/image`, { // ✅
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${token}` },
-      body: formData
-    });
-    const data = await res.json();
-    if (!res.ok) return alert(data.error || 'Error subiendo imagen');
-
-    // Actualiza el input de URL con la ruta subida
-    document.getElementById('p_imagen').value = data.url || '';
-  } catch (err) {
-    console.error(err);
-    alert('Error al subir imagen');
-  }
-}
+loadPedidos({ showLoader: true });

@@ -1,12 +1,35 @@
 const API_BASE = 'https://joyeria-full-stack-production.up.railway.app'; // ✅
 
 /* ====== Guardas de sesión ====== */
+function normalizeRoleValue(rawRole) {
+  if (rawRole === null || rawRole === undefined) return '';
+
+  const numericRole = Number(rawRole);
+  if (!Number.isNaN(numericRole) && Number.isFinite(numericRole)) {
+    if (numericRole === 1) return 'admin';
+    if (numericRole === 2) return 'vendedor';
+  }
+
+  const text = rawRole.toString().trim().toLowerCase();
+  if (!text) return '';
+
+  if (['1', 'admin', 'administrator', 'administrador'].includes(text)) {
+    return 'admin';
+  }
+  if (['2', 'vendedor', 'seller', 'ventas', 'salesperson', 'sales'].includes(text)) {
+    return 'vendedor';
+  }
+  return text;
+}
+
 const token = localStorage.getItem('token');
 const role  = localStorage.getItem('role');
+const rawRole = localStorage.getItem('role_raw');
+const normalizedRole = normalizeRoleValue(role ?? rawRole);
 // En auth.js guardas con la clave 'email', no 'userEmail'
 const email = localStorage.getItem('email'); // ✅
 
-if (!token || role !== 'admin') {
+if (!token || normalizedRole !== 'admin') {
   const next = encodeURIComponent('admin.html');
   window.location.href = `login.html?next=${next}`;
 }

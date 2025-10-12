@@ -1,7 +1,29 @@
+function normalizeRoleValue(rawRole) {
+  if (rawRole === null || rawRole === undefined) return '';
+
+  const numericRole = Number(rawRole);
+  if (!Number.isNaN(numericRole) && Number.isFinite(numericRole)) {
+    if (numericRole === 1) return 'admin';
+    if (numericRole === 2) return 'vendedor';
+  }
+
+  const text = rawRole.toString().trim().toLowerCase();
+  if (!text) return '';
+
+  if (['1', 'admin', 'administrator', 'administrador'].includes(text)) {
+    return 'admin';
+  }
+  if (['2', 'vendedor', 'seller', 'ventas', 'salesperson', 'sales'].includes(text)) {
+    return 'vendedor';
+  }
+  return text;
+}
+
 const allowedVendorRoles = new Set(['vendedor', 'seller']);
 const token = localStorage.getItem('token');
 const storedRole = localStorage.getItem('role');
-const normalizedRole = (storedRole || '').trim().toLowerCase();
+const storedRawRole = localStorage.getItem('role_raw');
+const normalizedRole = normalizeRoleValue(storedRole ?? storedRawRole);
 
 if (!token || !allowedVendorRoles.has(normalizedRole)) {
   const next = encodeURIComponent('ventas.html');

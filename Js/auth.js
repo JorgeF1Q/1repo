@@ -41,7 +41,7 @@ function redirectByRole(role) {
   if (normalized === 'admin') {
     window.location.href = 'admin.html';
   } else if (normalized === 'vendedor' || normalized === 'seller') {
-    window.location.href = 'ventas.html';
+    window.location.href = 'admin.html#sales';
   } else {
     window.location.href = 'index.html';
   }

@@ -1687,7 +1687,13 @@
   <script type="module" src="Js/settings.js"></script>
   <script type="module">
   // ======= CONFIG API =======
-  const API_BASE = 'https://joyeria-full-stack-production.up.railway.app';
+  const API_BASE = (() => {
+    const raw = window.APP_CONFIG?.apiBase;
+    if (typeof raw !== 'string') return '';
+    const trimmed = raw.trim();
+    if (!trimmed || trimmed === '/') return '';
+    return trimmed.replace(/\/+$/, '');
+  })();
 
   // ======= Auth helpers =======
   const TOKEN_KEYS = ['auth_token', 'token', 'jwt', 'api_key'];

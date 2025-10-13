@@ -1,5 +1,14 @@
 // /public/js/api.js
-export const API_BASE = 'https://joyeria-full-stack-production.up.railway.app';
+function resolveApiBase() {
+  if (typeof window === 'undefined') return '';
+  const raw = window.APP_CONFIG?.apiBase;
+  if (typeof raw !== 'string') return '';
+  const trimmed = raw.trim();
+  if (!trimmed || trimmed === '/') return '';
+  return trimmed.replace(/\/+$/, '');
+}
+
+export const API_BASE = resolveApiBase();
 
 // Productos
 export async function getProducts() {

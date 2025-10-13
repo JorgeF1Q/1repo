@@ -61,6 +61,19 @@ function detect_table(PDO $pdo, array $candidates): ?string
     return null;
 }
 
+function index_exists(PDO $pdo, string $table, string $index): bool
+{
+    $stmt = $pdo->prepare(
+        'SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+         WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = :table AND INDEX_NAME = :index'
+    );
+    $stmt->execute([
+        ':table' => $table,
+        ':index' => $index,
+    ]);
+    return (int) $stmt->fetchColumn() > 0;
+}
+
 function detect_column(PDO $pdo, string $table, array $candidates): ?string
 {
     foreach ($candidates as $candidate) {
@@ -114,7 +127,7 @@ function ensure_products_schema(PDO $pdo): array
 function ensure_images_schema(PDO $pdo, array $productSchema): array
 {
     $schema = [
-        'table' => detect_table($pdo, ['imagenes_producto', 'imagen_producto', 'producto_imagen', 'producto_imagenes', 'product_images', 'product_image', 'imagenes', 'imagen']),
+        'table' => detect_table($pdo, ['imagenes_producto', 'imagenes_productos', 'imagen_producto', 'producto_imagen', 'producto_imagenes', 'product_images', 'product_image', 'imagenes', 'imagen']),
         'id' => null,
         'product_fk' => null,
         'url' => null,
@@ -155,11 +168,10 @@ function ensure_images_schema(PDO $pdo, array $productSchema): array
         $schema['product_fk'] = 'producto_id';
         if (!column_exists($pdo, $table, $schema['product_fk'])) {
             $pdo->exec('ALTER TABLE ' . $table . ' ADD COLUMN ' . $schema['product_fk'] . ' INT NOT NULL');
-            $pdo->exec('CREATE INDEX IF NOT EXISTS idx_producto_fk ON ' . $table . ' (' . $schema['product_fk'] . ')');
         }
     }
 
-    $schema['url'] = detect_column($pdo, $table, ['url', 'ruta', 'path', 'enlace']);
+    $schema['url'] = detect_column($pdo, $table, ['url', 'ruta', 'path', 'enlace', 'imagen_url', 'url_imagen']);
     if (!$schema['url']) {
         $schema['url'] = 'url';
         if (!column_exists($pdo, $table, $schema['url'])) {
@@ -167,7 +179,7 @@ function ensure_images_schema(PDO $pdo, array $productSchema): array
         }
     }
 
-    $schema['blob'] = detect_column($pdo, $table, ['imagen_blob', 'blob', 'contenido', 'data']);
+    $schema['blob'] = detect_column($pdo, $table, ['imagen_blob', 'blob', 'contenido', 'data', 'img', 'imagen']);
     if (!$schema['blob']) {
         $schema['blob'] = 'imagen_blob';
         if (!column_exists($pdo, $table, $schema['blob'])) {
@@ -183,7 +195,7 @@ function ensure_images_schema(PDO $pdo, array $productSchema): array
         }
     }
 
-    $schema['filename'] = detect_column($pdo, $table, ['nombre_archivo', 'filename', 'archivo']);
+    $schema['filename'] = detect_column($pdo, $table, ['nombre_archivo', 'filename', 'archivo', 'nombre']);
     if (!$schema['filename']) {
         $schema['filename'] = 'nombre_archivo';
         if (!column_exists($pdo, $table, $schema['filename'])) {
@@ -191,7 +203,7 @@ function ensure_images_schema(PDO $pdo, array $productSchema): array
         }
     }
 
-    $schema['created_at'] = detect_column($pdo, $table, ['creado_en', 'created_at', 'fecha_creacion']);
+    $schema['created_at'] = detect_column($pdo, $table, ['creado_en', 'created_at', 'fecha_creacion', 'creado']);
     if (!$schema['created_at']) {
         $schema['created_at'] = 'creado_en';
         if (!column_exists($pdo, $table, $schema['created_at'])) {
@@ -209,6 +221,23 @@ function ensure_images_schema(PDO $pdo, array $productSchema): array
             );
         } catch (Throwable $e) {
             // Ignorar si ya existe
+        }
+
+        $indexCandidates = ['idx_' . $schema['product_fk'], 'idx_producto', 'idx_producto_fk'];
+        $hasIndex = false;
+        foreach ($indexCandidates as $candidate) {
+            if (index_exists($pdo, $schema['table'], $candidate)) {
+                $hasIndex = true;
+                break;
+            }
+        }
+        if (!$hasIndex) {
+            $indexName = $indexCandidates[0];
+            try {
+                $pdo->exec('CREATE INDEX ' . $indexName . ' ON ' . $schema['table'] . ' (' . $schema['product_fk'] . ')');
+            } catch (Throwable $e) {
+                // Ignorar si no se puede crear (ya existe con otro nombre o falta permiso)
+            }
         }
     }
 

@@ -1,18 +1,53 @@
 // /public/js/api.js
-export const API_BASE = 'https://joyeria-full-stack-production.up.railway.app';
+export const API_BASE = '';
+
+const REMOTE_BASE = 'https://joyeria-full-stack-production.up.railway.app';
+const LOCAL_PRODUCTS_ENDPOINT = '/api/products.php';
+const LOCAL_CATEGORIES_ENDPOINT = '/api/categories.php';
+
+async function fetchJson(url, options) {
+  const res = await fetch(url, options);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || data.ok === false) {
+    throw new Error(data.error || data.message || `Error de solicitud (${res.status})`);
+  }
+  return data;
+}
 
 // Productos
 export async function getProducts() {
-  const res = await fetch(`${API_BASE}/api/products`);
-  if (!res.ok) throw new Error('No se pudieron cargar productos');
-  return res.json();
+  try {
+    const data = await fetchJson(LOCAL_PRODUCTS_ENDPOINT);
+    if (Array.isArray(data)) return data;
+    if (Array.isArray(data.products)) return data.products;
+    if (Array.isArray(data.data)) return data.data;
+    return [];
+  } catch (err) {
+    console.warn('Fallo la carga local de productos, intentando con la API remota.', err);
+    const data = await fetchJson(`${REMOTE_BASE}/api/products`);
+    if (Array.isArray(data)) return data;
+    if (Array.isArray(data.products)) return data.products;
+    if (Array.isArray(data.data)) return data.data;
+    return [];
+  }
 }
 
 // Categorías
 export async function getCategories() {
-  const res = await fetch(`${API_BASE}/api/categories`);
-  if (!res.ok) throw new Error('No se pudieron cargar las categorías');
-  return res.json();
+  try {
+    const data = await fetchJson(LOCAL_CATEGORIES_ENDPOINT);
+    if (Array.isArray(data)) return data;
+    if (Array.isArray(data.categories)) return data.categories;
+    if (Array.isArray(data.data)) return data.data;
+    return [];
+  } catch (err) {
+    console.warn('Fallo la carga local de categorías, intentando con la API remota.', err);
+    const data = await fetchJson(`${REMOTE_BASE}/api/categories`);
+    if (Array.isArray(data)) return data;
+    if (Array.isArray(data.categories)) return data.categories;
+    if (Array.isArray(data.data)) return data.data;
+    return [];
+  }
 }
 
 // Alias comunes
@@ -25,7 +60,7 @@ export async function validateCoupon(code, subtotal) {
     return { valid: false, ok: false, message: 'Ingresa un cupón', tipo: null, valor: 0, descuento: 0 };
   }
 
-  const url = new URL(`${API_BASE}/api/coupons/validate`);
+  const url = new URL(`${REMOTE_BASE}/api/coupons/validate`);
   url.searchParams.set('codigo', code);
   url.searchParams.set('subtotal', String(subtotal));
 
@@ -45,7 +80,7 @@ export async function validateCoupon(code, subtotal) {
 
 // Ordenes
 export async function createOrder(payload) {
-  const res = await fetch(`${API_BASE}/api/orders`, {
+  const res = await fetch(`${REMOTE_BASE}/api/orders`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)

@@ -1,21 +1,45 @@
 // Js/auth.js
-const API_BASE = 'https://joyeria-full-stack-production.up.railway.app';
+const LOGIN_ENDPOINT = '/api/login.php';
 const $ = (s, ctx=document) => ctx.querySelector(s);
 
+function normalizeRoleValue(rawRole) {
+  if (rawRole === null || rawRole === undefined) return '';
+
+  const numericRole = Number(rawRole);
+  if (!Number.isNaN(numericRole) && Number.isFinite(numericRole)) {
+    if (numericRole === 1 || numericRole === 4) return 'admin';
+    if (numericRole === 2) return 'ventas';
+  }
+
+  const text = rawRole.toString().trim().toLowerCase();
+  if (!text) return '';
+
+  if (['1', '4', 'admin', 'administrator', 'administrador'].includes(text)) {
+    return 'admin';
+  }
+  if (['2', 'ventas', 'vendedor', 'seller', 'sales', 'salesperson'].includes(text)) {
+    return 'ventas';
+  }
+  return text;
+}
+
 function saveSession({ token, user }) {
-  // ajústalo si tu backend usa mayúsculas distintas
-  const role = user.role ?? user.Role ?? user.rol ?? user.Rol ?? user.perfil;
-  localStorage.setItem('token', token);
-  localStorage.setItem('role',  role);
+  const rawRole = user.role ?? user.Role ?? user.rol ?? user.Rol ?? user.perfil ?? user.role_id ?? user.RoleId ?? user.roleId;
+  const normalizedRole = normalizeRoleValue(rawRole);
+  localStorage.setItem('token', token || '');
+  localStorage.setItem('role', normalizedRole);
+  if (rawRole !== null && rawRole !== undefined) {
+    localStorage.setItem('role_raw', rawRole);
+  }
   localStorage.setItem('name',  user.nombre || user.name || '');
   localStorage.setItem('email', user.email  || '');
 }
 
 function redirectByRole(role) {
-  const normalized = (role || '').toString().trim().toLowerCase();
+  const normalized = normalizeRoleValue(role);
   if (normalized === 'admin') {
     window.location.href = 'admin.html';
-  } else if (normalized === 'vendedor' || normalized === 'seller') {
+  } else if (normalized === 'ventas' || normalized === 'vendedor' || normalized === 'seller') {
     window.location.href = 'ventas.html';
   } else {
     window.location.href = 'index.html';
@@ -24,17 +48,17 @@ function redirectByRole(role) {
 
 function showError(msg){ alert(msg || 'Error inesperado'); }
 
-async function loginRailway(email, password){
-  const res = await fetch(`${API_BASE}/api/auth/login`, {
+async function loginLocal(email, password){
+  const res = await fetch(LOGIN_ENDPOINT, {
     method: 'POST',
     headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({ Email: email, Password: password })
+    body: JSON.stringify({ email, password })
   });
   const data = await res.json().catch(()=> ({}));
   if (!res.ok || data.ok === false) {
     throw new Error(data.error || (data.errors && data.errors[0]?.msg) || 'Credenciales inválidas');
   }
-  return data; // { ok:true, token, user:{ role:'admin', ... } }
+  return data;
 }
 
 document.getElementById('loginForm')?.addEventListener('submit', async (e)=>{
@@ -43,7 +67,7 @@ document.getElementById('loginForm')?.addEventListener('submit', async (e)=>{
   const password = $('#password').value;
 
   try {
-    const data = await loginRailway(email, password);
+    const data = await loginLocal(email, password);
     saveSession({ token: data.token, user: data.user });
     redirectByRole(localStorage.getItem('role'));
   } catch (err) {

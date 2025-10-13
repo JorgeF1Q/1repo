@@ -1,9 +1,21 @@
-const allowedVendorRoles = new Set(['vendedor', 'seller']);
-const token = localStorage.getItem('token');
-const storedRole = localStorage.getItem('role');
-const normalizedRole = (storedRole || '').trim().toLowerCase();
+const ORDERS_ENDPOINT = '/api/orders.php';
 
-if (!token || !allowedVendorRoles.has(normalizedRole)) {
+function normalizeRole(rawRole) {
+  if (rawRole === null || rawRole === undefined) return '';
+  const numeric = Number(rawRole);
+  if (!Number.isNaN(numeric)) {
+    if (numeric === 1 || numeric === 4) return 'admin';
+    if (numeric === 2) return 'ventas';
+  }
+  const text = rawRole.toString().trim().toLowerCase();
+  if (['1', '4', 'admin', 'administrator', 'administrador'].includes(text)) return 'admin';
+  if (['2', 'ventas', 'vendedor', 'seller', 'sales', 'salesperson'].includes(text)) return 'ventas';
+  return text;
+}
+
+const token = localStorage.getItem('token');
+const storedRole = normalizeRole(localStorage.getItem('role') ?? localStorage.getItem('role_raw'));
+if (!token || !['ventas', 'vendedor', 'seller'].includes(storedRole)) {
   const next = encodeURIComponent('ventas.html');
   window.location.href = `login.html?next=${next}`;
 }
@@ -13,17 +25,21 @@ const vendorEmail = localStorage.getItem('email') || '—';
 
 const vendorNameLabel = document.getElementById('vendorName');
 const vendorEmailLabel = document.getElementById('vendorEmail');
-
 if (vendorNameLabel) vendorNameLabel.textContent = vendorName;
 if (vendorEmailLabel) vendorEmailLabel.textContent = vendorEmail;
 
-document.getElementById('logoutVendor')?.addEventListener('click', () => {
+const logoutBtn = document.getElementById('logoutVendor');
+logoutBtn?.addEventListener('click', () => {
   localStorage.removeItem('token');
   localStorage.removeItem('role');
+  localStorage.removeItem('role_raw');
   localStorage.removeItem('name');
   localStorage.removeItem('email');
   window.location.href = 'index.html';
 });
+
+const money = new Intl.NumberFormat('es-GT', { style: 'currency', currency: 'GTQ' });
+const dateTime = new Intl.DateTimeFormat('es-GT', { dateStyle: 'medium', timeStyle: 'short' });
 
 const $ordersTbody = document.querySelector('#tblPedidos tbody');
 const ordersAlert = document.getElementById('ordersAlert');
@@ -33,7 +49,7 @@ const ordersClearBtn = document.getElementById('ordersClearFilters');
 const ordersStatusCheckboxes = document.querySelectorAll('[data-order-status-filter]');
 
 const orderModalElement = document.getElementById('modalPedidoEstado');
-const orderModal = $('#modalPedidoEstado');
+const orderModal = window.jQuery ? window.jQuery('#modalPedidoEstado') : null;
 const orderModalForm = document.getElementById('frmPedidoEstado');
 const orderModalTitle = document.getElementById('orderModalTitle');
 const orderModalAlert = document.getElementById('orderModalAlert');
@@ -55,33 +71,27 @@ const orderNotesInput = document.getElementById('orderNotes');
 const orderModalCancelBtn = document.getElementById('orderModalCancelBtn');
 const orderModalSubmitBtn = document.getElementById('orderModalSubmitBtn');
 
-const money = new Intl.NumberFormat('es-GT', { style: 'currency', currency: 'GTQ' });
-const numberFormatter = new Intl.NumberFormat('es-GT', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
-const dateTimeFormatter = new Intl.DateTimeFormat('es-GT', { dateStyle: 'medium', timeStyle: 'short' });
-
-const DEFAULT_ORDER_STATUSES = ['pendiente', 'enviado'];
 const ordersState = {
   list: [],
   loading: false,
-  statusFilters: new Set(DEFAULT_ORDER_STATUSES),
+  statusFilters: new Set(['pendiente', 'enviado']),
   search: '',
 };
 
-let currentOrderDetail = null;
-let ordersAlertTimer = null;
+let currentOrder = null;
+let alertTimer = null;
 
-function escapeHtml(value) {
-  if (value === null || value === undefined) return '';
-  return String(value)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
+function buildHeaders(extra = {}) {
+  const headers = { Accept: 'application/json', ...extra };
+  if (token) {
+    headers.Authorization = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
+  }
+  return headers;
 }
 
-function normalizeStatusValue(value) {
-  const key = typeof value === 'string' ? value.trim().toLowerCase() : '';
+function normalizeStatus(value) {
+  const text = (value || '').toString().trim().toLowerCase();
+  if (!text) return 'pendiente';
   const map = {
     pending: 'pendiente',
     procesando: 'pendiente',
@@ -97,23 +107,16 @@ function normalizeStatusValue(value) {
     pagado: 'pagado',
     pagada: 'pagado',
     paid: 'pagado',
-    completado: 'pagado',
-    completada: 'pagado',
     completed: 'pagado',
     cancelado: 'cancelado',
     cancelada: 'cancelado',
     cancelled: 'cancelado',
-    anulado: 'cancelado',
-    anulada: 'cancelado',
     void: 'cancelado',
   };
-  const normalized = map[key] ?? key;
-  const allowed = new Set(['pendiente', 'enviado', 'pagado', 'cancelado']);
-  if (allowed.has(normalized)) return normalized;
-  return 'pendiente';
+  return map[text] || text;
 }
 
-function formatStatusLabel(status) {
+function statusLabel(status) {
   switch (status) {
     case 'pendiente': return 'Pendiente';
     case 'enviado': return 'Enviado';
@@ -123,99 +126,7 @@ function formatStatusLabel(status) {
   }
 }
 
-function parseDateValue(value) {
-  if (!value) return null;
-  const normalized = value.includes('T') ? value : value.replace(' ', 'T');
-  const date = new Date(normalized);
-  if (!Number.isNaN(date.getTime())) return date;
-  const fallback = new Date(value);
-  return Number.isNaN(fallback.getTime()) ? null : fallback;
-}
-
-function formatDateTime(value) {
-  const date = parseDateValue(value);
-  return date ? dateTimeFormatter.format(date) : '—';
-}
-
-function normalizeOrderFromApi(order = {}) {
-  const rawId = order.id ?? order.Id ?? order.orden_id ?? order.order_id ?? order.OrdenId;
-  const status = normalizeStatusValue(order.status ?? order.estado ?? order.Status ?? order.Estado ?? '');
-  const totalValue = order.total ?? order.Total ?? order.monto_total ?? order.TotalPedido ?? null;
-  const numericTotal = Number(totalValue);
-  const numericId = Number(rawId);
-  const hasNumericId = rawId !== null && rawId !== undefined && !Number.isNaN(numericId);
-
-  return {
-    id: rawId === null || rawId === undefined ? null : (hasNumericId ? numericId : rawId),
-    code: order.code ?? order.codigo ?? order.numero ?? order.numero_orden ?? null,
-    status,
-    status_label: formatStatusLabel(status),
-    total: Number.isFinite(numericTotal) ? numericTotal : (typeof totalValue === 'number' ? totalValue : null),
-    payment_method: order.payment_method ?? order.metodo_pago ?? order.MetodoPago ?? null,
-    payment_reference: order.payment_reference ?? order.referencia_pago ?? order.Referencia ?? null,
-    coupon_code: order.coupon_code ?? order.cupon_codigo ?? order.Cupon ?? null,
-    customer: {
-      name: order.customer?.name ?? order.customer ?? order.cliente ?? order.Nombre ?? null,
-      email: order.customer?.email ?? order.cliente_email ?? order.Email ?? null,
-      phone: order.customer?.phone ?? order.cliente_telefono ?? order.Telefono ?? null,
-      address: order.customer?.address ?? order.customer_address ?? order.cliente_direccion ?? order.Direccion ?? null,
-    },
-    delivery: {
-      person: {
-        id: order.delivery?.person?.id ?? order.repartidor_id ?? null,
-        name: order.delivery?.person?.name ?? order.repartidor_nombre ?? null,
-        contact: order.delivery?.person?.contact ?? order.repartidor_contacto ?? null,
-      },
-      payment_confirmed: Boolean(order.delivery?.payment_confirmed ?? order.pago_confirmado),
-      notes: order.delivery?.notes ?? order.notas ?? null,
-      assigned_at: order.delivery?.assigned_at ?? order.fecha_asignacion ?? null,
-      shipped_at: order.delivery?.shipped_at ?? order.fecha_envio ?? null,
-      paid_at: order.delivery?.paid_at ?? order.fecha_pago ?? null,
-      canceled_at: order.delivery?.canceled_at ?? order.fecha_cancelacion ?? null,
-      updated_at: order.delivery?.updated_at ?? order.gestion_actualizado_en ?? null,
-    },
-    created_at: order.created_at ?? order.creado_en ?? order.Fecha ?? null,
-    updated_at: order.updated_at ?? order.actualizado_en ?? null,
-    items: Array.isArray(order.items) ? order.items : undefined,
-  };
-}
-
-function upsertOrder(order) {
-  const normalized = normalizeOrderFromApi(order);
-  const id = normalized.id;
-  if (id === null || id === undefined) return;
-  const index = ordersState.list.findIndex(item => item.id === id);
-  if (index >= 0) {
-    const current = ordersState.list[index];
-    ordersState.list[index] = {
-      ...current,
-      ...normalized,
-      customer: { ...current.customer, ...normalized.customer },
-      delivery: {
-        ...current.delivery,
-        ...normalized.delivery,
-        person: {
-          ...(current.delivery ? current.delivery.person : {}),
-          ...(normalized.delivery ? normalized.delivery.person : {}),
-        },
-      },
-      items: normalized.items !== undefined ? normalized.items : current.items,
-    };
-  } else {
-    ordersState.list.push(normalized);
-  }
-}
-
-function renderOrdersLoading() {
-  if (!$ordersTbody) return;
-  $ordersTbody.innerHTML = `
-    <tr>
-      <td colspan="8" class="text-center text-muted py-4">Cargando pedidos...</td>
-    </tr>
-  `;
-}
-
-function getStatusBadgeClass(status) {
+function statusBadgeClass(status) {
   switch (status) {
     case 'pendiente': return 'badge-soft-warning';
     case 'enviado': return 'badge-soft-info';
@@ -225,163 +136,313 @@ function getStatusBadgeClass(status) {
   }
 }
 
-function pedidoRowHTML(order) {
-  const idLabel = order.code ? escapeHtml(order.code) : (order.id !== null && order.id !== undefined ? `#${order.id}` : '—');
-  const statusBadge = `<span class="status-badge ${getStatusBadgeClass(order.status)}">${escapeHtml(order.status_label)}</span>`;
-  const customerName = escapeHtml(order.customer?.name || 'Cliente sin nombre');
-  const addressLine = order.customer?.address ? `<div class="order-mini-meta"><i class="fas fa-map-marker-alt mr-1"></i>${escapeHtml(order.customer.address)}</div>` : '';
-  const phoneLine = order.customer?.phone ? `<div class="order-mini-meta"><i class="fas fa-phone mr-1"></i>${escapeHtml(order.customer.phone)}</div>` : '';
-  const emailLine = order.customer?.email ? `<div class="order-mini-meta"><i class="fas fa-envelope mr-1"></i>${escapeHtml(order.customer.email)}</div>` : '';
-  const deliveryName = order.delivery?.person?.name
-    ? `<span class="order-delivery-chip">${escapeHtml(order.delivery.person.name)}</span>`
-    : `<span class="order-delivery-chip unassigned">Sin asignar</span>`;
-  const deliveryContact = order.delivery?.person?.contact ? `<div class="order-mini-meta">${escapeHtml(order.delivery.person.contact)}</div>` : '';
-  const assignedLine = order.delivery?.assigned_at ? `<div class="order-mini-meta">Asignado: ${formatDateTime(order.delivery.assigned_at)}</div>` : '';
-  const shippedLine = order.delivery?.shipped_at ? `<div class="order-mini-meta">Enviado: ${formatDateTime(order.delivery.shipped_at)}</div>` : '';
-  const paymentChipClass = order.delivery?.payment_confirmed ? 'order-payment-chip confirmed' : 'order-payment-chip pending';
-  const paymentChipText = order.delivery?.payment_confirmed ? 'Pago confirmado' : 'Pendiente de cobro';
-  const paymentMethodLine = order.payment_method ? `<div class="order-mini-meta"><i class="fas fa-money-bill-wave mr-1"></i>${escapeHtml(order.payment_method)}</div>` : '';
-  const paymentReferenceLine = order.payment_reference ? `<div class="order-mini-meta">Ref: ${escapeHtml(order.payment_reference)}</div>` : '';
-  const paidLine = order.delivery?.paid_at ? `<div class="order-mini-meta">Pagado: ${formatDateTime(order.delivery.paid_at)}</div>` : '';
-  const updatedRef = order.delivery?.updated_at || order.updated_at || order.delivery?.paid_at || order.delivery?.shipped_at || order.created_at;
-  const updatedLabel = updatedRef ? formatDateTime(updatedRef) : '—';
-  const createdLabel = order.created_at ? formatDateTime(order.created_at) : null;
-  const total = typeof order.total === 'number' && Number.isFinite(order.total) ? money.format(order.total) : '—';
-
-  const actions = [];
-  actions.push(`<button class="btn btn-sm btn-outline-primary" data-order-action="manage" data-order-id="${order.id}">Gestionar</button>`);
-  if (order.status === 'pendiente') {
-    actions.push(`<button class="btn btn-sm btn-outline-info" data-order-action="ship" data-order-id="${order.id}">Marcar enviada</button>`);
-  }
-  if (order.status !== 'pagado' && order.status !== 'cancelado') {
-    actions.push(`<button class="btn btn-sm btn-outline-success" data-order-action="mark-paid" data-order-id="${order.id}">Marcar pagada</button>`);
-  }
-  if (order.status !== 'cancelado') {
-    actions.push(`<button class="btn btn-sm btn-outline-danger" data-order-action="cancel" data-order-id="${order.id}">Cancelar</button>`);
-  }
-
-  const contactBlock = phoneLine || emailLine ? `${phoneLine}${emailLine}` : '<div class="order-mini-meta text-muted">Sin contacto</div>';
-
-  return `
-    <tr data-id="${order.id ?? ''}">
-      <td>
-        <div><strong>${idLabel}</strong></div>
-        <div class="order-mini-meta">${statusBadge}</div>
-      </td>
-      <td>
-        ${customerName}
-        ${addressLine}
-      </td>
-      <td>
-        ${contactBlock}
-      </td>
-      <td>
-        ${deliveryName}
-        ${deliveryContact}
-        ${assignedLine}
-        ${shippedLine}
-      </td>
-      <td>
-        <span class="${paymentChipClass}">${paymentChipText}</span>
-        ${paymentMethodLine}
-        ${paymentReferenceLine}
-        ${paidLine}
-      </td>
-      <td>${total}</td>
-      <td>
-        <span class="order-mini-meta">Actualizado: ${updatedLabel}</span>
-        ${createdLabel ? `<span class="order-meta-muted">Creado: ${createdLabel}</span>` : ''}
-      </td>
-      <td class="text-right actions-column">
-        ${actions.join(' ')}
-      </td>
-    </tr>
-  `;
+function parseDate(value) {
+  if (!value) return null;
+  const normalized = value.includes('T') ? value : value.replace(' ', 'T');
+  const date = new Date(normalized);
+  if (!Number.isNaN(date.getTime())) return date;
+  const fallback = new Date(value);
+  return Number.isNaN(fallback.getTime()) ? null : fallback;
 }
 
-function renderOrders() {
-  if (!$ordersTbody) return;
-  const searchTerm = ordersState.search.trim().toLowerCase();
-  const statuses = ordersState.statusFilters;
-  const filtered = ordersState.list
-    .filter(order => !statuses.size || statuses.has(order.status))
-    .filter(order => {
-      if (!searchTerm) return true;
-      const haystack = [
-        order.id ? `#${order.id}` : '',
-        order.code || '',
-        order.status_label || '',
-        order.customer?.name || '',
-        order.customer?.address || '',
-        order.customer?.phone || '',
-        order.customer?.email || '',
-        order.payment_method || '',
-        order.delivery?.person?.name || '',
-        order.delivery?.person?.contact || '',
-      ].join(' ').toLowerCase();
-      return haystack.includes(searchTerm);
-    })
-    .sort((a, b) => {
-      const aDate = parseDateValue(a.delivery?.updated_at || a.updated_at || a.delivery?.paid_at || a.delivery?.shipped_at || a.created_at);
-      const bDate = parseDateValue(b.delivery?.updated_at || b.updated_at || b.delivery?.paid_at || b.delivery?.shipped_at || b.created_at);
-      return (bDate?.getTime() || 0) - (aDate?.getTime() || 0);
-    });
-
-  if (!filtered.length) {
-    $ordersTbody.innerHTML = `
-      <tr>
-        <td colspan="8" class="text-center text-muted py-4">No se encontraron pedidos con los filtros seleccionados.</td>
-      </tr>
-    `;
-    return;
-  }
-
-  $ordersTbody.innerHTML = filtered.map(pedidoRowHTML).join('');
+function formatDate(value) {
+  const date = parseDate(value);
+  return date ? dateTime.format(date) : '—';
 }
 
-function setLoadingButton(btn, loading, text = 'Guardando...') {
-  if (!btn) return;
-  if (loading) {
-    if (!btn.dataset.originalHtml) {
-      btn.dataset.originalHtml = btn.innerHTML;
-    }
-    btn.innerHTML = `<span class="spinner-border spinner-border-sm mr-2" role="status" aria-hidden="true"></span>${text}`;
-    btn.disabled = true;
-  } else {
-    if (btn.dataset.originalHtml) {
-      btn.innerHTML = btn.dataset.originalHtml;
-      delete btn.dataset.originalHtml;
-    }
-    btn.disabled = false;
-  }
+function normalizeOrder(raw = {}) {
+  const status = normalizeStatus(raw.status ?? raw.estado ?? raw.estado_gestion ?? '');
+  return {
+    id: raw.id ?? raw.Id ?? null,
+    code: raw.code ?? raw.codigo ?? `#${raw.id ?? raw.Id ?? ''}`,
+    status,
+    status_label: raw.status_label ?? statusLabel(status),
+    total: Number(raw.total ?? raw.Total ?? 0) || 0,
+    payment_method: raw.payment_method ?? raw.metodo_pago ?? null,
+    payment_reference: raw.payment_reference ?? raw.referencia_pago ?? null,
+    coupon_code: raw.coupon_code ?? raw.cupon_codigo ?? null,
+    customer: {
+      name: raw.customer?.name ?? raw.cliente ?? null,
+      email: raw.customer?.email ?? raw.cliente_email ?? null,
+      phone: raw.customer?.phone ?? raw.cliente_telefono ?? null,
+      address: raw.customer?.address ?? raw.cliente_direccion ?? null,
+    },
+    delivery: {
+      person: {
+        name: raw.delivery?.person?.name ?? raw.repartidor_nombre ?? null,
+        contact: raw.delivery?.person?.contact ?? raw.repartidor_contacto ?? null,
+        id: raw.delivery?.person?.id ?? raw.repartidor_id ?? null,
+      },
+      payment_confirmed: Boolean(raw.delivery?.payment_confirmed ?? raw.pago_confirmado ?? false),
+      notes: raw.delivery?.notes ?? raw.notas ?? null,
+      assigned_at: raw.delivery?.assigned_at ?? raw.fecha_asignacion ?? null,
+      shipped_at: raw.delivery?.shipped_at ?? raw.fecha_envio ?? null,
+      paid_at: raw.delivery?.paid_at ?? raw.fecha_pago ?? null,
+      canceled_at: raw.delivery?.canceled_at ?? raw.fecha_cancelacion ?? null,
+      updated_at: raw.delivery?.updated_at ?? raw.actualizado_en ?? raw.gestion_actualizado_en ?? null,
+    },
+    created_at: raw.created_at ?? raw.creado_en ?? null,
+    updated_at: raw.updated_at ?? raw.actualizado_en ?? null,
+    items: Array.isArray(raw.items) ? raw.items : [],
+  };
 }
 
-function showOrdersAlert(type, message) {
+async function fetchOrders(filters = {}) {
+  const params = new URLSearchParams();
+  if (Array.isArray(filters.statuses) && filters.statuses.length) {
+    params.set('status', filters.statuses.join(','));
+  }
+  if (filters.search) {
+    params.set('q', filters.search.trim());
+  }
+  params.set('limit', String(filters.limit ?? 200));
+
+  const res = await fetch(`${ORDERS_ENDPOINT}?${params.toString()}`, {
+    headers: buildHeaders(),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || data.error) {
+    throw new Error(data.error || data.message || 'No se pudieron cargar los pedidos.');
+  }
+  const collection = Array.isArray(data.orders)
+    ? data.orders
+    : Array.isArray(data.data)
+      ? data.data
+      : Array.isArray(data)
+        ? data
+        : [];
+  return collection.map(normalizeOrder);
+}
+
+async function fetchOrderDetail(id) {
+  const res = await fetch(`${ORDERS_ENDPOINT}?id=${encodeURIComponent(id)}&with=items`, {
+    headers: buildHeaders(),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || data.error) {
+    throw new Error(data.error || data.message || 'No se pudo cargar el pedido.');
+  }
+  const order = data.order ?? data.data ?? data;
+  return normalizeOrder(order);
+}
+
+async function updateOrder(id, payload = {}) {
+  const res = await fetch(`${ORDERS_ENDPOINT}?id=${encodeURIComponent(id)}&with=items`, {
+    method: 'PATCH',
+    headers: buildHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || data.error) {
+    throw new Error(data.error || data.message || 'No se pudo actualizar el pedido.');
+  }
+  const order = data.order ?? data.data ?? data;
+  return normalizeOrder(order);
+}
+
+function showOrdersAlert(message, type = 'danger', timeout = 4000) {
   if (!ordersAlert) return;
   ordersAlert.className = `alert alert-${type}`;
   ordersAlert.textContent = message;
   ordersAlert.classList.remove('d-none');
-  if (ordersAlertTimer) {
-    clearTimeout(ordersAlertTimer);
+  if (alertTimer) {
+    clearTimeout(alertTimer);
   }
-  ordersAlertTimer = window.setTimeout(() => {
-    hideOrdersAlert();
-  }, 6000);
+  if (timeout) {
+    alertTimer = window.setTimeout(() => {
+      ordersAlert.classList.add('d-none');
+      alertTimer = null;
+    }, timeout);
+  }
 }
 
 function hideOrdersAlert() {
   if (!ordersAlert) return;
   ordersAlert.classList.add('d-none');
   ordersAlert.textContent = '';
-  if (ordersAlertTimer) {
-    clearTimeout(ordersAlertTimer);
-    ordersAlertTimer = null;
+  if (alertTimer) {
+    clearTimeout(alertTimer);
+    alertTimer = null;
   }
 }
 
-function showOrderModalAlert(message, type = 'danger') {
+function renderOrders() {
+  if (!$ordersTbody) return;
+  if (ordersState.loading) {
+    $ordersTbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">Cargando pedidos...</td></tr>';
+    return;
+  }
+
+  const search = ordersState.search.trim().toLowerCase();
+  const statuses = ordersState.statusFilters;
+  const filtered = ordersState.list.filter(order => {
+    const statusOk = !statuses.size || statuses.has(order.status);
+    if (!statusOk) return false;
+    if (!search) return true;
+    const haystack = [
+      order.code,
+      order.customer?.name,
+      order.customer?.email,
+      order.customer?.phone,
+      order.delivery?.person?.name,
+      order.delivery?.person?.contact,
+      order.status_label,
+    ].join(' ').toLowerCase();
+    return haystack.includes(search);
+  });
+
+  if (!filtered.length) {
+    $ordersTbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">No hay pedidos con los filtros seleccionados.</td></tr>';
+    return;
+  }
+
+  $ordersTbody.innerHTML = filtered.map(order => {
+    const deliveryName = order.delivery?.person?.name || 'Sin asignar';
+    const deliveryContact = order.delivery?.person?.contact || '—';
+    const paymentConfirmed = order.delivery?.payment_confirmed;
+    const updatedAt = order.delivery?.updated_at || order.updated_at;
+    const createdAt = order.created_at ? `<span class="order-meta-muted">Creado: ${formatDate(order.created_at)}</span>` : '';
+    const statusBadge = `<span class="status-badge ${statusBadgeClass(order.status)}">${order.status_label}</span>`;
+    const paymentChip = paymentConfirmed
+      ? '<span class="order-payment-chip confirmed">Pago confirmado</span>'
+      : '<span class="order-payment-chip pending">Pago pendiente</span>';
+
+    return `
+      <tr data-id="${order.id}">
+        <td>
+          <strong>${order.code || `#${order.id}`}</strong><br>
+          ${statusBadge}
+          ${createdAt}
+        </td>
+        <td>
+          <strong>${order.customer?.name || 'Sin nombre'}</strong>
+          <span class="order-mini-meta">${order.customer?.address || 'Sin dirección registrada'}</span>
+        </td>
+        <td>
+          <span class="order-mini-meta">Tel: ${order.customer?.phone || '—'}</span>
+          <span class="order-mini-meta">Email: ${order.customer?.email || '—'}</span>
+        </td>
+        <td>
+          <span class="order-delivery-chip ${deliveryName === 'Sin asignar' ? 'unassigned' : ''}">${deliveryName}</span>
+          <span class="order-mini-meta">Contacto: ${deliveryContact}</span>
+        </td>
+        <td>
+          <span class="order-mini-meta">Método: ${order.payment_method || '—'}</span>
+          ${paymentChip}
+        </td>
+        <td>${money.format(order.total)}</td>
+        <td>
+          <span class="order-mini-meta">Actualizado: ${formatDate(updatedAt)}</span>
+        </td>
+        <td class="text-right actions-column">
+          <button class="btn btn-sm btn-primary" data-order-id="${order.id}">
+            Gestionar
+          </button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+async function loadOrders({ showLoader = false } = {}) {
+  if (ordersState.loading) return;
+  ordersState.loading = true;
+  if (showLoader && $ordersTbody) {
+    $ordersTbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">Actualizando pedidos...</td></tr>';
+  }
+  try {
+    hideOrdersAlert();
+    const statuses = Array.from(ordersState.statusFilters);
+    const orders = await fetchOrders({ statuses, search: ordersState.search });
+    ordersState.list = orders;
+    renderOrders();
+  } catch (err) {
+    showOrdersAlert(err.message || 'No se pudieron cargar los pedidos.');
+    if ($ordersTbody) {
+      $ordersTbody.innerHTML = `<tr><td colspan="8" class="text-center text-danger py-4">${err.message || 'Error al cargar pedidos.'}</td></tr>`;
+    }
+  } finally {
+    ordersState.loading = false;
+  }
+}
+
+function resetOrderModal() {
+  currentOrder = null;
+  if (orderModalForm) orderModalForm.reset();
+  if (orderModalAlert) {
+    orderModalAlert.classList.add('d-none');
+    orderModalAlert.textContent = '';
+  }
+  if (orderModalItemsBody) {
+    orderModalItemsBody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3">Sin productos.</td></tr>';
+  }
+  if (orderModalTimeline) {
+    orderModalTimeline.innerHTML = '<li class="text-muted">Sin eventos registrados.</li>';
+  }
+}
+
+function fillOrderModal(order) {
+  currentOrder = order;
+  if (!order) return;
+  if (orderModalIdInput) orderModalIdInput.value = order.id ?? '';
+  if (orderModalTitle) orderModalTitle.textContent = `Pedido ${order.code || `#${order.id}`}`;
+  if (orderModalCustomer) orderModalCustomer.textContent = order.customer?.name || 'Sin nombre';
+  if (orderModalContact) orderModalContact.textContent = [order.customer?.email, order.customer?.phone].filter(Boolean).join(' · ') || 'Sin contacto';
+  if (orderModalAddress) orderModalAddress.textContent = order.customer?.address || 'Sin dirección registrada';
+  if (orderModalCode) orderModalCode.textContent = order.code || `#${order.id}`;
+  if (orderModalDate) orderModalDate.textContent = formatDate(order.created_at);
+  if (orderModalPayment) orderModalPayment.textContent = order.payment_method || '—';
+  if (orderModalTotal) orderModalTotal.textContent = money.format(order.total);
+  if (orderStatusSelect) orderStatusSelect.value = order.status;
+  if (orderDeliveryNameInput) orderDeliveryNameInput.value = order.delivery?.person?.name || '';
+  if (orderDeliveryContactInput) orderDeliveryContactInput.value = order.delivery?.person?.contact || '';
+  if (orderPaymentConfirmedInput) orderPaymentConfirmedInput.checked = !!order.delivery?.payment_confirmed;
+  if (orderNotesInput) orderNotesInput.value = order.delivery?.notes || '';
+
+  if (orderModalItemsBody) {
+    if (!order.items || !order.items.length) {
+      orderModalItemsBody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3">Sin productos en la orden.</td></tr>';
+    } else {
+      orderModalItemsBody.innerHTML = order.items.map(item => {
+        const quantity = Number(item.quantity ?? item.cantidad ?? 0);
+        const unitPrice = Number(item.unit_price ?? item.precio ?? 0);
+        const lineTotal = Number(item.line_total ?? item.total_linea ?? quantity * unitPrice);
+        return `
+          <tr>
+            <td>${item.product_name || item.nombre || `#${item.product_id}`}</td>
+            <td class="text-right">${quantity}</td>
+            <td class="text-right">${money.format(unitPrice)}</td>
+            <td class="text-right">${money.format(lineTotal)}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+  }
+
+  if (orderModalTimeline) {
+    const timeline = [];
+    if (order.created_at) timeline.push({ label: 'Creado', value: order.created_at });
+    if (order.delivery?.assigned_at) timeline.push({ label: 'Asignado a repartidor', value: order.delivery.assigned_at });
+    if (order.delivery?.shipped_at) timeline.push({ label: 'Enviado', value: order.delivery.shipped_at });
+    if (order.delivery?.paid_at) timeline.push({ label: 'Pago confirmado', value: order.delivery.paid_at });
+    if (order.delivery?.canceled_at) timeline.push({ label: 'Cancelado', value: order.delivery.canceled_at });
+    if (order.delivery?.updated_at) timeline.push({ label: 'Última actualización', value: order.delivery.updated_at });
+
+    if (!timeline.length) {
+      orderModalTimeline.innerHTML = '<li class="text-muted">Sin historial registrado.</li>';
+    } else {
+      orderModalTimeline.innerHTML = timeline.map(entry => `
+        <li>
+          <strong>${entry.label}:</strong>
+          <span class="d-block text-muted">${formatDate(entry.value)}</span>
+        </li>
+      `).join('');
+    }
+  }
+}
+
+function showOrderModalAlert(message) {
   if (!orderModalAlert) return;
-  orderModalAlert.className = `alert alert-${type}`;
   orderModalAlert.textContent = message;
   orderModalAlert.classList.remove('d-none');
 }
@@ -392,170 +453,43 @@ function hideOrderModalAlert() {
   orderModalAlert.textContent = '';
 }
 
-function setOrderModalFetching(isFetching) {
-  if (orderModalSubmitBtn) {
-    setLoadingButton(orderModalSubmitBtn, isFetching, 'Cargando...');
-  }
-  if (orderModalCancelBtn) {
-    orderModalCancelBtn.disabled = isFetching;
-  }
-}
-
-function setOrderModalLoading(isLoading) {
-  if (orderModalSubmitBtn) {
-    setLoadingButton(orderModalSubmitBtn, isLoading, 'Guardando...');
-  }
-  if (orderModalCancelBtn) {
-    orderModalCancelBtn.disabled = isLoading;
-  }
-}
-
-function resetOrderModal() {
-  if (orderModalForm) {
-    orderModalForm.reset();
-    orderModalForm.dataset.orderId = '';
-  }
-  if (orderModalIdInput) orderModalIdInput.value = '';
-  if (orderModalCustomer) orderModalCustomer.textContent = '—';
-  if (orderModalContact) orderModalContact.innerHTML = '<span class="text-muted">Sin contacto</span>';
-  if (orderModalAddress) orderModalAddress.textContent = '—';
-  if (orderModalCode) orderModalCode.textContent = '—';
-  if (orderModalDate) orderModalDate.textContent = '—';
-  if (orderModalPayment) orderModalPayment.textContent = '—';
-  if (orderModalTotal) orderModalTotal.textContent = '—';
-  if (orderModalTimeline) orderModalTimeline.innerHTML = '<li class="text-muted">Cargando...</li>';
+async function openOrderModal(orderId) {
+  resetOrderModal();
+  if (!orderModalElement) return;
+  if (orderModalTitle) orderModalTitle.textContent = 'Cargando pedido...';
   if (orderModalItemsBody) {
     orderModalItemsBody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3">Cargando productos...</td></tr>';
   }
-  if (orderModalSubmitBtn && orderModalSubmitBtn.dataset.originalHtml) {
-    setLoadingButton(orderModalSubmitBtn, false);
-  }
-  if (orderModalCancelBtn) orderModalCancelBtn.disabled = false;
-  hideOrderModalAlert();
-}
-
-function fillOrderModal(order, options = {}) {
-  if (!orderModalTitle) return;
-  orderModalTitle.textContent = order.code ? `Orden ${order.code}` : `Orden #${order.id}`;
-  if (orderModalIdInput) orderModalIdInput.value = order.id ?? '';
-  if (orderModalForm) orderModalForm.dataset.orderId = order.id ?? '';
-  if (orderModalCustomer) orderModalCustomer.textContent = order.customer?.name || 'Cliente sin nombre';
-  if (orderModalContact) {
-    const parts = [];
-    if (order.customer?.phone) parts.push(`<div class="order-mini-meta"><i class="fas fa-phone mr-1"></i>${escapeHtml(order.customer.phone)}</div>`);
-    if (order.customer?.email) parts.push(`<div class="order-mini-meta"><i class="fas fa-envelope mr-1"></i>${escapeHtml(order.customer.email)}</div>`);
-    orderModalContact.innerHTML = parts.length ? parts.join('') : '<span class="text-muted">Sin contacto</span>';
-  }
-  if (orderModalAddress) orderModalAddress.textContent = order.customer?.address || 'Sin dirección registrada';
-  if (orderModalCode) orderModalCode.textContent = order.code ? order.code : (order.id ? `#${order.id}` : '—');
-  if (orderModalDate) orderModalDate.textContent = order.created_at ? formatDateTime(order.created_at) : '—';
-  if (orderModalPayment) orderModalPayment.textContent = order.payment_method || '—';
-  if (orderModalTotal) orderModalTotal.textContent = typeof order.total === 'number' && Number.isFinite(order.total) ? money.format(order.total) : '—';
-
-  if (orderStatusSelect) {
-    const preset = options.presetStatus && ['pendiente','enviado','pagado','cancelado'].includes(options.presetStatus)
-      ? options.presetStatus
-      : order.status;
-    orderStatusSelect.value = preset;
-  }
-  if (orderDeliveryNameInput) orderDeliveryNameInput.value = order.delivery?.person?.name || '';
-  if (orderDeliveryContactInput) orderDeliveryContactInput.value = order.delivery?.person?.contact || '';
-  if (orderPaymentConfirmedInput) orderPaymentConfirmedInput.checked = !!order.delivery?.payment_confirmed;
-  if (orderNotesInput) orderNotesInput.value = order.delivery?.notes || '';
-
-  if (orderModalTimeline) {
-    const timeline = [];
-    if (order.created_at) timeline.push({ label: 'Creado', date: order.created_at });
-    if (order.delivery?.assigned_at) timeline.push({ label: 'Repartidor asignado', date: order.delivery.assigned_at, detail: order.delivery?.person?.name ? `a ${order.delivery.person.name}` : '' });
-    if (order.delivery?.shipped_at) timeline.push({ label: 'Enviado', date: order.delivery.shipped_at });
-    if (order.delivery?.paid_at) timeline.push({ label: 'Pago confirmado', date: order.delivery.paid_at });
-    if (order.delivery?.canceled_at) timeline.push({ label: 'Cancelado', date: order.delivery.canceled_at });
-
-    orderModalTimeline.innerHTML = timeline.length
-      ? timeline.map(item => `<li>${escapeHtml(item.label)}${item.detail ? ` <span class="order-meta-muted">${escapeHtml(item.detail)}</span>` : ''}<div class="order-mini-meta">${formatDateTime(item.date)}</div></li>`).join('')
-      : '<li class="text-muted">Sin movimientos registrados.</li>';
-  }
-
-  if (orderModalItemsBody) {
-    const items = Array.isArray(order.items) ? order.items : [];
-    if (!items.length) {
-      orderModalItemsBody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3">Sin productos registrados.</td></tr>';
-    } else {
-      orderModalItemsBody.innerHTML = items.map(item => {
-        const productName = item.product_name ? escapeHtml(item.product_name) : (item.product_id ? `#${item.product_id}` : 'Producto');
-        const quantity = item.quantity !== undefined && item.quantity !== null ? numberFormatter.format(item.quantity) : '—';
-        const unitPrice = item.unit_price !== undefined && item.unit_price !== null && Number.isFinite(Number(item.unit_price)) ? money.format(Number(item.unit_price)) : '—';
-        const lineTotalValue = item.line_total !== undefined && item.line_total !== null ? Number(item.line_total) : (item.quantity !== undefined && item.unit_price !== undefined ? Number(item.quantity) * Number(item.unit_price) : NaN);
-        const lineTotal = Number.isFinite(lineTotalValue) ? money.format(lineTotalValue) : '—';
-        return `<tr><td>${productName}</td><td class="text-right">${quantity}</td><td class="text-right">${unitPrice}</td><td class="text-right">${lineTotal}</td></tr>`;
-      }).join('');
-    }
-  }
-
-  if (options.focusField === 'delivery' && orderDeliveryNameInput) {
-    setTimeout(() => orderDeliveryNameInput.focus(), 200);
-  }
-}
-
-async function fetchOrderDetail(orderId) {
-  const params = new URLSearchParams({ id: orderId, with: 'items' });
-  const res = await fetch(`/api/orders.php?${params.toString()}`, {
-    headers: { 'Accept': 'application/json' },
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok || data.error || !data.order) {
-    throw new Error(data.error || data.message || 'No se encontró la orden solicitada.');
-  }
-  return normalizeOrderFromApi(data.order ?? {});
-}
-
-async function updateOrderStatus(id, payload, { includeItems = false } = {}) {
-  const params = new URLSearchParams();
-  if (includeItems) params.set('with', 'items');
-  const res = await fetch(`/api/orders.php?id=${id}${params.toString() ? `&${params.toString()}` : ''}`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-    body: JSON.stringify(payload),
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok || data.error) {
-    throw new Error(data.error || data.message || 'No se pudo actualizar el pedido.');
-  }
-  return normalizeOrderFromApi(data.order ?? {});
-}
-
-async function openOrderModal(orderId, options = {}) {
-  if (!orderModalElement) return;
-  resetOrderModal();
-  setOrderModalFetching(true);
-  hideOrdersAlert();
-  orderModal.modal('show');
+  orderModal?.modal('show');
   try {
     const detail = await fetchOrderDetail(orderId);
-    currentOrderDetail = detail;
-    upsertOrder(detail);
-    renderOrders();
-    fillOrderModal(detail, options);
+    fillOrderModal(detail);
   } catch (err) {
-    console.error(err);
-    showOrderModalAlert(err.message || 'No se pudo cargar la orden.');
-  } finally {
-    setOrderModalFetching(false);
+    showOrderModalAlert(err.message || 'No se pudo cargar el pedido.');
   }
 }
 
-async function submitOrderModalUpdate(extra = {}) {
-  if (!currentOrderDetail) return;
-  const id = currentOrderDetail.id;
-  const status = extra.status ?? (orderStatusSelect ? orderStatusSelect.value : currentOrderDetail.status);
-  const deliveryName = (extra.delivery_person !== undefined ? extra.delivery_person : (orderDeliveryNameInput ? orderDeliveryNameInput.value : '')).trim();
-  const deliveryContact = (extra.delivery_contact !== undefined ? extra.delivery_contact : (orderDeliveryContactInput ? orderDeliveryContactInput.value : '')).trim();
-  let paymentConfirmed = extra.payment_confirmed !== undefined ? !!extra.payment_confirmed : !!(orderPaymentConfirmedInput && orderPaymentConfirmedInput.checked);
-  const notes = (extra.notes !== undefined ? extra.notes : (orderNotesInput ? orderNotesInput.value : '')).trim();
+function updateOrderInState(order) {
+  const index = ordersState.list.findIndex(item => item.id === order.id);
+  if (index >= 0) {
+    ordersState.list[index] = order;
+  } else {
+    ordersState.list.unshift(order);
+  }
+}
+
+async function submitOrderModalUpdate({ status: forcedStatus, skipConfirm = false } = {}) {
+  if (!currentOrder) return;
+  const id = currentOrder.id;
+  const status = forcedStatus ?? (orderStatusSelect ? orderStatusSelect.value : currentOrder.status);
+  const deliveryName = orderDeliveryNameInput ? orderDeliveryNameInput.value.trim() : '';
+  const deliveryContact = orderDeliveryContactInput ? orderDeliveryContactInput.value.trim() : '';
+  let paymentConfirmed = orderPaymentConfirmedInput ? orderPaymentConfirmedInput.checked : currentOrder.delivery?.payment_confirmed;
+  const notes = orderNotesInput ? orderNotesInput.value.trim() : '';
 
   if (status === 'enviado' && !deliveryName) {
     showOrderModalAlert('Debes asignar un repartidor antes de marcar la orden como enviada.');
-    if (orderDeliveryNameInput) orderDeliveryNameInput.focus();
+    orderDeliveryNameInput?.focus();
     return;
   }
 
@@ -563,156 +497,70 @@ async function submitOrderModalUpdate(extra = {}) {
     paymentConfirmed = true;
   }
 
-  if (status === 'cancelado' && !extra.skipConfirm) {
-    const confirmed = window.confirm('¿Seguro que deseas cancelar la orden? Se devolverá el inventario de los productos.');
+  if (status === 'cancelado' && !skipConfirm) {
+    const confirmed = window.confirm('¿Seguro que deseas cancelar la orden? Se devolverá el inventario correspondiente.');
     if (!confirmed) return;
   }
 
   hideOrderModalAlert();
-  setOrderModalLoading(true);
+  if (orderModalSubmitBtn) {
+    orderModalSubmitBtn.disabled = true;
+    orderModalSubmitBtn.textContent = 'Guardando...';
+  }
+  orderModalCancelBtn && (orderModalCancelBtn.disabled = true);
 
   try {
-    const updated = await updateOrderStatus(id, {
+    const updated = await updateOrder(id, {
       status,
-      delivery_person: deliveryName || null,
-      delivery_contact: deliveryContact || null,
+      delivery_person: deliveryName,
+      delivery_contact: deliveryContact,
       payment_confirmed: paymentConfirmed,
-      notes: notes || null,
-    }, { includeItems: true });
-
-    currentOrderDetail = updated;
-    upsertOrder(updated);
+      notes,
+    });
+    updateOrderInState(updated);
     renderOrders();
-    fillOrderModal(updated, { presetStatus: status });
-    showOrderModalAlert('Pedido actualizado correctamente.', 'success');
-    hideOrdersAlert();
-    if (status === 'cancelado') {
-      showOrdersAlert('success', 'Pedido cancelado y productos devueltos al inventario.');
-    }
+    fillOrderModal(updated);
+    showOrdersAlert('Pedido actualizado correctamente.', 'success');
   } catch (err) {
-    console.error(err);
     showOrderModalAlert(err.message || 'No se pudo actualizar el pedido.');
   } finally {
-    setOrderModalLoading(false);
+    if (orderModalSubmitBtn) {
+      orderModalSubmitBtn.disabled = false;
+      orderModalSubmitBtn.textContent = 'Guardar cambios';
+    }
+    orderModalCancelBtn && (orderModalCancelBtn.disabled = false);
   }
 }
 
-async function performOrderUpdate(id, payload, { successMessage, confirmMessage, trigger, includeItems = false } = {}) {
-  if (confirmMessage && !window.confirm(confirmMessage)) {
-    return;
-  }
-  if (trigger) setLoadingButton(trigger, true, 'Actualizando...');
-  hideOrdersAlert();
-  try {
-    const updated = await updateOrderStatus(id, payload, { includeItems });
-    upsertOrder(updated);
-    renderOrders();
-    if (currentOrderDetail && currentOrderDetail.id === updated.id) {
-      currentOrderDetail = includeItems ? updated : { ...currentOrderDetail, ...updated, items: currentOrderDetail.items };
-      fillOrderModal(currentOrderDetail);
-      showOrderModalAlert(successMessage || 'Pedido actualizado correctamente.', 'success');
-    } else if (successMessage) {
-      showOrdersAlert('success', successMessage);
-    }
-  } catch (err) {
-    console.error(err);
-    showOrdersAlert('danger', err.message || 'No se pudo actualizar el pedido.');
-    if (currentOrderDetail && currentOrderDetail.id === id) {
-      showOrderModalAlert(err.message || 'No se pudo actualizar el pedido.');
-    }
-  } finally {
-    if (trigger) setLoadingButton(trigger, false);
-  }
+if (orderModalForm) {
+  orderModalForm.addEventListener('submit', (event) => {
+    event.preventDefault();
+    submitOrderModalUpdate();
+  });
 }
 
-function handleOrdersTableClick(event) {
-  const btn = event.target.closest('[data-order-action]');
-  if (!btn) return;
-  const id = Number(btn.dataset.orderId);
-  if (!id) return;
-  const action = btn.dataset.orderAction;
-  switch (action) {
-    case 'manage':
-      openOrderModal(id);
-      break;
-    case 'ship':
-      openOrderModal(id, { presetStatus: 'enviado', focusField: 'delivery' });
-      break;
-    case 'mark-paid':
-      performOrderUpdate(id, { status: 'pagado', payment_confirmed: true }, {
-        successMessage: 'Pedido marcado como pagado.',
-        confirmMessage: '¿Confirmar que se recibió el pago de la orden?',
-        trigger: btn,
-        includeItems: currentOrderDetail?.id === id,
-      });
-      break;
-    case 'cancel':
-      performOrderUpdate(id, { status: 'cancelado' }, {
-        successMessage: 'Pedido cancelado y productos devueltos al inventario.',
-        confirmMessage: '¿Seguro que deseas cancelar la orden? Se devolverá el inventario.',
-        trigger: btn,
-        includeItems: currentOrderDetail?.id === id,
-      });
-      break;
-    default:
-      break;
-  }
-}
-
-async function loadPedidos({ showLoader = true } = {}) {
-  if (!$ordersTbody || ordersState.loading) return;
-  ordersState.loading = true;
-  if (showLoader) {
-    renderOrdersLoading();
-  }
-  if (ordersReloadBtn) setLoadingButton(ordersReloadBtn, true, 'Actualizando...');
-  hideOrdersAlert();
-
-  try {
-    const params = new URLSearchParams();
-    if (ordersState.statusFilters.size) {
-      params.set('status', Array.from(ordersState.statusFilters).join(','));
-    }
-    if (ordersState.search.trim()) {
-      params.set('q', ordersState.search.trim());
-    }
-    params.set('limit', '200');
-
-    const res = await fetch(`/api/orders.php${params.toString() ? `?${params.toString()}` : ''}`, {
-      headers: { 'Accept': 'application/json' },
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok || data.error) {
-      throw new Error(data.error || data.message || 'No se pudo cargar la lista de pedidos.');
-    }
-    const orders = Array.isArray(data.orders)
-      ? data.orders
-      : (Array.isArray(data.data) ? data.data : []);
-    ordersState.list = orders.map(normalizeOrderFromApi);
-    renderOrders();
-  } catch (err) {
-    console.error(err);
-    showOrdersAlert('danger', err.message || 'No se pudo cargar la lista de pedidos.');
-    if (!$ordersTbody.innerHTML.trim()) {
-      $ordersTbody.innerHTML = `<tr><td colspan="8" class="text-center text-danger py-4">${escapeHtml(err.message || 'Error al cargar pedidos.')}</td></tr>`;
-    }
-  } finally {
-    ordersState.loading = false;
-    if (ordersReloadBtn) setLoadingButton(ordersReloadBtn, false);
-  }
+if (orderModalCancelBtn) {
+  orderModalCancelBtn.addEventListener('click', () => {
+    submitOrderModalUpdate({ status: 'cancelado' });
+  });
 }
 
 if ($ordersTbody) {
-  $ordersTbody.addEventListener('click', handleOrdersTableClick);
+  $ordersTbody.addEventListener('click', (event) => {
+    const button = event.target.closest('button[data-order-id]');
+    if (!button) return;
+    const id = button.getAttribute('data-order-id');
+    if (!id) return;
+    openOrderModal(id);
+  });
 }
 
-ordersStatusCheckboxes.forEach(cb => {
-  cb.addEventListener('change', () => {
+ordersStatusCheckboxes.forEach(checkbox => {
+  checkbox.addEventListener('change', () => {
     const selected = new Set();
     ordersStatusCheckboxes.forEach(box => {
-      const value = normalizeStatusValue(box.value);
       if (box.checked) {
-        selected.add(value);
+        selected.add(normalizeStatus(box.value));
       }
     });
     ordersState.statusFilters = selected;
@@ -731,9 +579,9 @@ if (ordersClearBtn) {
   ordersClearBtn.addEventListener('click', () => {
     ordersState.search = '';
     if (ordersSearchInput) ordersSearchInput.value = '';
-    ordersState.statusFilters = new Set(DEFAULT_ORDER_STATUSES);
+    ordersState.statusFilters = new Set(['pendiente', 'enviado']);
     ordersStatusCheckboxes.forEach(box => {
-      box.checked = ordersState.statusFilters.has(normalizeStatusValue(box.value));
+      box.checked = ordersState.statusFilters.has(normalizeStatus(box.value));
     });
     renderOrders();
   });
@@ -741,28 +589,8 @@ if (ordersClearBtn) {
 
 if (ordersReloadBtn) {
   ordersReloadBtn.addEventListener('click', () => {
-    loadPedidos({ showLoader: true });
+    loadOrders({ showLoader: true });
   });
 }
 
-if (orderModalForm) {
-  orderModalForm.addEventListener('submit', (event) => {
-    event.preventDefault();
-    submitOrderModalUpdate();
-  });
-}
-
-if (orderModalCancelBtn) {
-  orderModalCancelBtn.addEventListener('click', () => {
-    submitOrderModalUpdate({ status: 'cancelado' });
-  });
-}
-
-if (orderModalElement) {
-  orderModal.on('hidden.bs.modal', () => {
-    currentOrderDetail = null;
-    resetOrderModal();
-  });
-}
-
-loadPedidos({ showLoader: true });
+loadOrders({ showLoader: true });

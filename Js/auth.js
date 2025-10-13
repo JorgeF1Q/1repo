@@ -1,5 +1,12 @@
 // Js/auth.js
-const API_BASE = 'https://joyeria-full-stack-production.up.railway.app';
+const API_BASE = (() => {
+  if (typeof window === 'undefined') return '';
+  const raw = window.APP_CONFIG?.apiBase;
+  if (typeof raw !== 'string') return '';
+  const trimmed = raw.trim();
+  if (!trimmed || trimmed === '/') return '';
+  return trimmed.replace(/\/+$/, '');
+})();
 const $ = (s, ctx=document) => ctx.querySelector(s);
 
 function saveSession({ token, user }) {

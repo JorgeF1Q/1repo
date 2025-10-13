@@ -433,206 +433,6 @@
       border-radius: 14px;
     }
 
-    /* Orders management */
-    .orders-toolbar {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      justify-content: space-between;
-      gap: 0.75rem;
-      margin-bottom: 1rem;
-    }
-
-    .orders-status-filter {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 1rem;
-      font-weight: 600;
-      color: #1e3c72;
-    }
-
-    .orders-status-filter input[type="checkbox"] {
-      margin-right: 0.35rem;
-    }
-
-    .orders-filter-label {
-      font-size: 0.85rem;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: #6c7a92;
-    }
-
-    .orders-toolbar-actions {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 0.75rem;
-    }
-
-    .orders-toolbar .input-group {
-      min-width: 240px;
-    }
-
-    .orders-table td,
-    .orders-table th {
-      vertical-align: middle;
-    }
-
-    .orders-table tbody td {
-      vertical-align: top;
-    }
-
-    .status-badge {
-      display: inline-flex;
-      align-items: center;
-      padding: 0.35rem 0.65rem;
-      border-radius: 999px;
-      font-size: 0.75rem;
-      font-weight: 700;
-      letter-spacing: 0.02em;
-      text-transform: uppercase;
-    }
-
-    .badge-soft-warning {
-      background: rgba(255, 193, 7, 0.15);
-      color: #a36a00;
-    }
-
-    .badge-soft-info {
-      background: rgba(30, 144, 255, 0.12);
-      color: #1767aa;
-    }
-
-    .badge-soft-success {
-      background: rgba(40, 167, 69, 0.15);
-      color: #1d7a3c;
-    }
-
-    .badge-soft-danger {
-      background: rgba(220, 53, 69, 0.15);
-      color: #a01828;
-    }
-
-    .badge-soft-secondary {
-      background: rgba(108, 117, 125, 0.15);
-      color: #495057;
-    }
-
-    .order-delivery-chip,
-    .order-payment-chip {
-      display: inline-flex;
-      align-items: center;
-      padding: 0.25rem 0.6rem;
-      border-radius: 14px;
-      font-size: 0.78rem;
-      font-weight: 600;
-      background: rgba(30, 60, 114, 0.08);
-      color: #1e3c72;
-    }
-
-    .order-payment-chip.pending {
-      background: rgba(255, 193, 7, 0.12);
-      color: #a36a00;
-    }
-
-    .order-payment-chip.confirmed {
-      background: rgba(40, 167, 69, 0.15);
-      color: #1d7a3c;
-    }
-
-    .order-delivery-chip.unassigned {
-      background: rgba(108, 117, 125, 0.12);
-      color: #495057;
-    }
-
-    .order-mini-meta {
-      display: block;
-      font-size: 0.78rem;
-      color: #6c7a92;
-    }
-
-    .order-meta-muted {
-      font-size: 0.78rem;
-      color: #97a1b7;
-    }
-
-    .orders-table .actions-column > .btn {
-      margin-left: 0.25rem;
-      margin-bottom: 0.35rem;
-    }
-
-    .orders-table .actions-column > .btn:first-child {
-      margin-left: 0;
-    }
-
-    .orders-table .actions-column {
-      white-space: nowrap;
-    }
-
-    .order-modal-box {
-      border: 1px solid rgba(30, 60, 114, 0.12);
-      border-radius: 12px;
-      padding: 1rem;
-      background: rgba(248, 249, 252, 0.65);
-      height: 100%;
-    }
-
-    .order-modal-timeline {
-      list-style: none;
-      padding-left: 0;
-    }
-
-    .order-modal-timeline li {
-      position: relative;
-      padding-left: 1.25rem;
-      margin-bottom: 0.5rem;
-    }
-
-    .order-modal-timeline li::before {
-      content: '';
-      position: absolute;
-      left: 0;
-      top: 0.3rem;
-      width: 0.5rem;
-      height: 0.5rem;
-      border-radius: 999px;
-      background: #1e3c72;
-    }
-
-    .order-modal-timeline li.text-muted::before {
-      background: #ced4da;
-    }
-
-    .modal .custom-control {
-      padding-left: 1.75rem;
-    }
-
-    .modal .custom-control-label::before,
-    .modal .custom-control-label::after {
-      left: -1.75rem;
-    }
-
-    @media (max-width: 576px) {
-      .orders-toolbar {
-        flex-direction: column;
-        align-items: stretch;
-      }
-
-      .orders-toolbar .input-group {
-        width: 100%;
-      }
-
-      .orders-toolbar-actions {
-        width: 100%;
-        justify-content: space-between;
-      }
-
-      .orders-table .actions-column {
-        white-space: normal;
-      }
-    }
-
     .settings-panel .table-responsive::-webkit-scrollbar {
       height: 6px;
     }
@@ -782,87 +582,47 @@
     
     <script>
 (function guardAdmin() {
-  const ALLOWED_ROLES = new Set(['admin', 'vendedor']);
+  // token y role guardados por Js/auth.js
+  const token = localStorage.getItem('token');
+  let role = localStorage.getItem('role');
 
-  function normalizeRoleValue(rawRole) {
-    if (rawRole === null || rawRole === undefined) return '';
-
-    const numericRole = Number(rawRole);
-    if (!Number.isNaN(numericRole) && Number.isFinite(numericRole)) {
-      if (numericRole === 1) return 'admin';
-      if (numericRole === 2) return 'vendedor';
-    }
-
-    const text = rawRole.toString().trim().toLowerCase();
-    if (!text) return '';
-
-    if (['1', 'admin', 'administrator', 'administrador'].includes(text)) {
-      return 'admin';
-    }
-    if (['2', 'vendedor', 'seller', 'ventas', 'salesperson', 'sales'].includes(text)) {
-      return 'vendedor';
-    }
-    return text;
-  }
-
-  function parseJwt(t) {
-    try {
-      const base = t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+  // fallback: extraer rol del JWT si existe
+  function parseJwt(t){
+    try{
+      const base = t.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');
       const json = decodeURIComponent(Array.prototype.map.call(atob(base), c =>
         '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
       ).join(''));
       return JSON.parse(json);
-    } catch {
-      return null;
-    }
+    }catch{return null;}
   }
 
-  const token = localStorage.getItem('token');
-  const storedRole = localStorage.getItem('role');
-  const storedRawRole = localStorage.getItem('role_raw');
-
-  let normalizedRole = normalizeRoleValue(storedRole ?? storedRawRole);
-
-  if ((!normalizedRole || !ALLOWED_ROLES.has(normalizedRole)) && token) {
-    const payload = parseJwt(token);
-    const jwtRole = payload?.role ?? payload?.Role ?? payload?.rol ?? payload?.Rol ?? payload?.perfil ?? null;
-    if (jwtRole !== null && jwtRole !== undefined) {
-      localStorage.setItem('role_raw', jwtRole);
-      normalizedRole = normalizeRoleValue(jwtRole);
-    }
+  if (!role && token) {
+    const p = parseJwt(token);
+    role = p?.role ?? p?.Role ?? p?.rol ?? p?.Rol ?? p?.perfil ?? null;
+    if (role) localStorage.setItem('role', role);
   }
 
-  if (!token || !ALLOWED_ROLES.has(normalizedRole)) {
+  // si no hay token o no es admin -> al login
+  if (!token || role !== 'admin') {
     localStorage.removeItem('token');
     localStorage.removeItem('role');
-    localStorage.removeItem('role_raw');
     localStorage.removeItem('name');
     localStorage.removeItem('email');
     window.location.replace('login.html');
     return;
   }
 
-  const normalized = normalizedRole || 'admin';
-  localStorage.setItem('role', normalized);
-  window.__DASHBOARD_ROLE = normalized;
-
-  if (document.body) {
-    document.body.setAttribute('data-role', normalized);
-    document.body.classList.add(`role-${normalized}`);
-  }
-
-  const isAdmin = normalized === 'admin';
+  // pinta nombre/email si están guardados
   const nameEl = document.getElementById('adminName');
   const emailEl = document.getElementById('adminEmail');
-  const storedName = localStorage.getItem('name');
-  const storedEmail = localStorage.getItem('email');
-  if (nameEl && storedName) nameEl.textContent = storedName;
-  if (emailEl && storedEmail) emailEl.textContent = storedEmail;
+  if (nameEl)  nameEl.textContent  = localStorage.getItem('name')  || nameEl.textContent;
+  if (emailEl) emailEl.textContent = localStorage.getItem('email') || emailEl.textContent;
 
   const badge = document.getElementById('sessionBadge');
-  if (badge) badge.textContent = isAdmin ? 'Sesión activa (admin)' : 'Sesión activa (ventas)';
+  if (badge) badge.textContent = 'Sesión activa (admin)';
 })();
-    </script>
+</script>
 
     
     
@@ -960,86 +720,19 @@
         </section>
 
         <section class="content-section" id="section-sales">
-          <div class="section-card">
-            <div class="d-flex flex-wrap align-items-center mb-3">
-              <div>
-                <h2 class="section-title mb-1">Gestión de entregas</h2>
-                <p class="text-muted mb-0">Controla los pedidos pendientes, enviados y contra entrega.</p>
-              </div>
-              <div class="ml-auto d-flex align-items-center flex-wrap">
-                <button id="btnPedidosReload" class="btn btn-outline-primary btn-sm">Actualizar</button>
-              </div>
-            </div>
-
-            <div class="orders-toolbar">
-              <div class="orders-status-filter">
-                <span class="orders-filter-label">Mostrar:</span>
-                <label class="orders-status-option mb-0">
-                  <input type="checkbox" value="pendiente" data-order-status-filter checked>
-                  Pendientes
-                </label>
-                <label class="orders-status-option mb-0">
-                  <input type="checkbox" value="enviado" data-order-status-filter checked>
-                  Enviadas
-                </label>
-                <label class="orders-status-option mb-0">
-                  <input type="checkbox" value="pagado" data-order-status-filter>
-                  Pagadas
-                </label>
-                <label class="orders-status-option mb-0">
-                  <input type="checkbox" value="cancelado" data-order-status-filter>
-                  Canceladas
-                </label>
-              </div>
-              <div class="orders-toolbar-actions">
-                <div class="input-group input-group-sm">
-                  <div class="input-group-prepend">
-                    <span class="input-group-text"><i class="fas fa-search"></i></span>
-                  </div>
-                  <input id="ordersSearch" type="search" class="form-control" placeholder="Buscar cliente, orden o repartidor">
-                </div>
-                <button id="ordersClearFilters" type="button" class="btn btn-link btn-sm text-muted">Limpiar</button>
-              </div>
-            </div>
-
-            <div id="ordersAlert" class="alert alert-danger d-none"></div>
-
-            <div class="table-responsive shadow-sm rounded-lg">
-              <table id="tblPedidos" class="table table-hover orders-table mb-0">
-                <thead class="thead-light">
-                  <tr>
-                    <th>Orden</th>
-                    <th>Cliente</th>
-                    <th>Contacto</th>
-                    <th>Entrega</th>
-                    <th>Pago</th>
-                    <th>Total</th>
-                    <th>Actualización</th>
-                    <th class="text-right">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td colspan="8" class="text-center text-muted py-4">Cargando pedidos...</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <div class="section-card mt-4">
-            <div class="d-flex flex-wrap align-items-center mb-3">
-              <h2 class="section-title mb-0">Reportería</h2>
-              <span class="badge badge-pill badge-success ml-2">Ventas</span>
-            </div>
-            <iframe
-              src="reporteria.html"
-              class="dashboard-frame"
-              loading="lazy"
-              title="Dashboard de reportería"
-            ></iframe>
-          </div>
-        </section>
+  <div class="section-card">
+    <div class="d-flex flex-wrap align-items-center mb-3">
+      <h2 class="section-title mb-0">Reportería</h2>
+      <span class="badge badge-pill badge-success ml-2">Ventas</span>
+    </div>
+    <iframe
+      src="reporteria.html"
+      class="dashboard-frame"
+      loading="lazy"
+      title="Dashboard de reportería"
+    ></iframe>
+  </div>
+</section>
 
 
         <section class="content-section" id="section-revenue">
@@ -1369,118 +1062,6 @@
     </div>
   </div>
 
-  <!-- Modal gestión de pedidos -->
-  <div class="modal fade" id="modalPedidoEstado" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-      <div class="modal-content">
-        <form id="frmPedidoEstado">
-          <div class="modal-header">
-            <h5 id="orderModalTitle" class="modal-title">Actualizar pedido</h5>
-            <button type="button" class="close" data-dismiss="modal" aria-label="Cerrar">
-              <span aria-hidden="true">&times;</span>
-            </button>
-          </div>
-
-          <div class="modal-body">
-            <input type="hidden" id="orderModalId" />
-            <div id="orderModalAlert" class="alert alert-danger d-none"></div>
-
-            <div class="row">
-              <div class="col-md-6 mb-3">
-                <div class="order-modal-box">
-                  <h6 class="text-uppercase text-muted small mb-2">Cliente</h6>
-                  <p id="orderModalCustomer" class="mb-1 font-weight-semibold">—</p>
-                  <p id="orderModalContact" class="mb-1 text-muted">—</p>
-                  <p id="orderModalAddress" class="mb-0 text-muted">—</p>
-                </div>
-              </div>
-              <div class="col-md-6 mb-3">
-                <div class="order-modal-box">
-                  <h6 class="text-uppercase text-muted small mb-2">Pedido</h6>
-                  <p class="mb-1"><strong>Orden:</strong> <span id="orderModalCode">—</span></p>
-                  <p class="mb-1"><strong>Fecha:</strong> <span id="orderModalDate">—</span></p>
-                  <p class="mb-1"><strong>Método:</strong> <span id="orderModalPayment">—</span></p>
-                  <p class="mb-0"><strong>Total:</strong> <span id="orderModalTotal">—</span></p>
-                </div>
-              </div>
-            </div>
-
-            <div class="order-modal-box mb-3">
-              <h6 class="text-uppercase text-muted small mb-2">Seguimiento</h6>
-              <ul class="order-modal-timeline mb-0" id="orderModalTimeline">
-                <li class="text-muted">Cargando...</li>
-              </ul>
-            </div>
-
-            <div class="order-modal-box mb-3">
-              <h6 class="text-uppercase text-muted small mb-2">Productos</h6>
-              <div class="table-responsive">
-                <table class="table table-sm table-striped mb-0">
-                  <thead>
-                    <tr>
-                      <th>Producto</th>
-                      <th class="text-right">Cantidad</th>
-                      <th class="text-right">Precio</th>
-                      <th class="text-right">Subtotal</th>
-                    </tr>
-                  </thead>
-                  <tbody id="orderModalItemsBody">
-                    <tr>
-                      <td colspan="4" class="text-center text-muted py-3">Cargando productos...</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <div class="form-row">
-              <div class="form-group col-md-6">
-                <label for="orderStatusSelect">Cambiar estado</label>
-                <select id="orderStatusSelect" class="form-control" required>
-                  <option value="pendiente">Pendiente</option>
-                  <option value="enviado">Enviado</option>
-                  <option value="pagado">Pagado</option>
-                  <option value="cancelado">Cancelado</option>
-                </select>
-              </div>
-              <div class="form-group col-md-6">
-                <label for="orderDeliveryName" class="d-flex justify-content-between">
-                  <span>Repartidor asignado</span>
-                  <small class="text-muted">Obligatorio para enviar</small>
-                </label>
-                <input id="orderDeliveryName" type="text" class="form-control" placeholder="Nombre del repartidor" />
-              </div>
-            </div>
-
-            <div class="form-row">
-              <div class="form-group col-md-6">
-                <label for="orderDeliveryContact">Contacto del repartidor</label>
-                <input id="orderDeliveryContact" type="text" class="form-control" placeholder="Teléfono o identificación" />
-              </div>
-              <div class="form-group col-md-6 d-flex align-items-center">
-                <div class="custom-control custom-checkbox">
-                  <input type="checkbox" class="custom-control-input" id="orderPaymentConfirmed" />
-                  <label class="custom-control-label" for="orderPaymentConfirmed">Pago contra entrega confirmado</label>
-                </div>
-              </div>
-            </div>
-
-            <div class="form-group">
-              <label for="orderNotes">Notas internas</label>
-              <textarea id="orderNotes" class="form-control" rows="2" placeholder="Comentarios o instrucciones adicionales"></textarea>
-            </div>
-          </div>
-
-          <div class="modal-footer">
-            <button type="button" class="btn btn-outline-danger mr-auto" id="orderModalCancelBtn">Cancelar pedido</button>
-            <button type="button" class="btn btn-outline-secondary" data-dismiss="modal">Cerrar</button>
-            <button type="submit" class="btn btn-primary" id="orderModalSubmitBtn">Guardar cambios</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
-
   <!-- Modal Producto -->
   <div class="modal fade" id="modalProducto" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
@@ -1577,69 +1158,26 @@
     const toggleBtn = document.getElementById('menuToggle');
     const navButtons = document.querySelectorAll('.nav-btn');
     const sections = document.querySelectorAll('.content-section');
-    const dashboardRole = window.__DASHBOARD_ROLE || 'admin';
-    const isVendorView = dashboardRole === 'vendedor';
-    const vendorAllowedSections = new Set(['sales', 'products']);
-
-    function isSectionAllowed(sectionName) {
-      if (!isVendorView) return true;
-      return vendorAllowedSections.has(sectionName);
-    }
 
     function showSection(sectionName) {
-      const desired = sectionName && isSectionAllowed(sectionName)
-        ? sectionName
-        : (isVendorView ? 'sales' : 'dashboard');
-
       navButtons.forEach(btn => {
-        const matches = btn.dataset.section === desired;
+        const matches = btn.dataset.section === sectionName;
         btn.classList.toggle('active', matches);
       });
 
       sections.forEach(section => {
-        const sectionKey = section.id.replace('section-', '');
-        const shouldDisplay = sectionKey === desired;
-        section.classList.toggle('active', shouldDisplay);
-        if (isVendorView) {
-          section.classList.toggle('d-none', !isSectionAllowed(sectionKey));
-        }
+        section.classList.toggle('active', section.id === `section-${sectionName}`);
       });
-
-      if (location.hash.replace('#', '') !== desired) {
-        if (typeof history.replaceState === 'function') {
-          history.replaceState({}, '', `#${desired}`);
-        } else {
-          location.hash = `#${desired}`;
-        }
-      }
     }
 
     navButtons.forEach(btn => {
-      const sectionName = btn.dataset.section;
-      if (!isSectionAllowed(sectionName)) {
-        btn.classList.add('d-none');
-        btn.setAttribute('aria-hidden', 'true');
-        btn.tabIndex = -1;
-        return;
-      }
-
       btn.addEventListener('click', () => {
-        showSection(sectionName);
+        showSection(btn.dataset.section);
         if (window.innerWidth < 992) {
           layout.classList.add('sidebar-hidden');
         }
       });
     });
-
-    if (isVendorView) {
-      sections.forEach(section => {
-        const sectionKey = section.id.replace('section-', '');
-        if (!isSectionAllowed(sectionKey)) {
-          section.classList.remove('active');
-          section.classList.add('d-none');
-        }
-      });
-    }
 
     toggleBtn.addEventListener('click', () => {
       layout.classList.toggle('sidebar-hidden');
@@ -1665,12 +1203,6 @@
     if (storedName) {
       document.getElementById('adminName').textContent = storedName;
     }
-
-    const hashSection = location.hash.replace('#', '');
-    const initialSection = hashSection && isSectionAllowed(hashSection)
-      ? hashSection
-      : (isVendorView ? 'sales' : 'dashboard');
-    showSection(initialSection);
   </script>
 
   <script>
@@ -2092,7 +1624,6 @@
       localStorage.removeItem(k);
       sessionStorage.removeItem(k);
     }
-    ['role', 'role_raw', 'name', 'email'].forEach(key => localStorage.removeItem(key));
   }
   // Decodificar payload de JWT sin librerías
   function parseJwt(token) {
@@ -2156,9 +1687,7 @@
   <script type="module" src="Js/settings.js"></script>
   <script type="module">
   // ======= CONFIG API =======
-  const API_BASE = '';
-  const PRODUCTS_ENDPOINT = '/api/products.php';
-  const PRODUCT_IMAGE_ENDPOINT = '/api/product-image.php';
+  const API_BASE = 'https://joyeria-full-stack-production.up.railway.app';
 
   // ======= Auth helpers =======
   const TOKEN_KEYS = ['auth_token', 'token', 'jwt', 'api_key'];
@@ -2179,24 +1708,9 @@
     }
     return h;
   }
-  function resolveApiPath(path) {
-    if (!path) return path;
-    if (path.startsWith('http')) return path;
-    if (path.startsWith('/api/products/')) {
-      const id = path.slice('/api/products/'.length).replace(/\/?$/, '');
-      if (id) return `${PRODUCTS_ENDPOINT}?id=${encodeURIComponent(id)}`;
-      return PRODUCTS_ENDPOINT;
-    }
-    if (path === '/api/products') {
-      return PRODUCTS_ENDPOINT;
-    }
-    return path;
-  }
-
   async function apiFetch(url, opts = {}) {
     const headers = authHeaders(opts.headers || {});
-    const resolved = resolveApiPath(url);
-    const res = await fetch(resolved, { ...opts, headers });
+    const res = await fetch(url, { ...opts, headers });
     const text = await res.text().catch(()=> '');
     if (!res.ok) {
       // intenta parsear json para mensaje fino
@@ -2216,8 +1730,6 @@
   const tblBody    = $('#tblProductos tbody');
   const frm        = $('#frmProducto');
   const modalTitle = $('#modalTitle');
-  const dashboardRole = window.__DASHBOARD_ROLE || 'admin';
-  const isAdminDashboard = dashboardRole === 'admin';
 
   // Campos modal
   const fId        = $('#p_id');
@@ -2237,31 +1749,20 @@
     `;
     try {
       // si este GET también requiere token, ya usamos apiFetch
-      const data = await apiFetch('/api/products');
-      const list = Array.isArray(data)
-        ? data
-        : Array.isArray(data.products)
-          ? data.products
-          : [];
-      if (!list.length) {
+      const data = await apiFetch(`${API_BASE}/api/products`);
+      if (!Array.isArray(data) || data.length === 0) {
         tblBody.innerHTML = `
           <tr><td colspan="7" class="text-center text-muted">Sin productos.</td></tr>
         `;
         return;
       }
-      tblBody.innerHTML = list.map(p => {
+      tblBody.innerHTML = data.map(p => {
         const id     = p.Id ?? p.id;
         const codigo = p.Codigo ?? p.codigo ?? '';
         const nombre = p.Nombre ?? p.nombre ?? '';
         const precio = Number(p.Precio ?? p.precio ?? 0);
         const stock  = Number(p.Stock ?? p.stock ?? 0);
         const activo = Number(p.Activo ?? p.activo ?? 0);
-        const actionsHtml = isAdminDashboard
-          ? `
-              <button class="btn btn-sm btn-outline-primary" data-edit="${id}">Editar</button>
-              <button class="btn btn-sm btn-outline-danger" data-del="${id}">Eliminar</button>
-            `
-          : '<span class="text-muted">Solo lectura</span>';
         return `
           <tr data-id="${id}">
             <td>${id}</td>
@@ -2274,7 +1775,10 @@
                 ${activo ? 'Sí' : 'No'}
               </span>
             </td>
-            <td class="text-right">${actionsHtml}</td>
+            <td class="text-right">
+              <button class="btn btn-sm btn-outline-primary" data-edit="${id}">Editar</button>
+              <button class="btn btn-sm btn-outline-danger"  data-del="${id}">Eliminar</button>
+            </td>
           </tr>
         `;
       }).join('');
@@ -2288,73 +1792,59 @@
     }
   }
 
-  const newProductBtn = document.querySelector('[data-target="#modalProducto"]');
-  if (!isAdminDashboard && newProductBtn) {
-    newProductBtn.classList.add('d-none');
-    newProductBtn.setAttribute('aria-hidden', 'true');
-    newProductBtn.tabIndex = -1;
-  }
-
-  if (isAdminDashboard) {
-    // ========= NUEVO =========
-    newProductBtn?.addEventListener('click', () => {
+  // ========= NUEVO =========
+  document.querySelector('[data-target="#modalProducto"]')
+    ?.addEventListener('click', () => {
       frm.reset();
       fId.value = '';
       modalTitle.textContent = 'Nuevo producto';
     });
 
-    // ========= EDITAR / ELIMINAR =========
-    document.getElementById('section-products')
-      ?.addEventListener('click', async (e) => {
-        const btn = e.target.closest('button');
-        if (!btn) return;
+  // ========= EDITAR / ELIMINAR =========
+  document.getElementById('section-products')
+    .addEventListener('click', async (e) => {
+      const btn = e.target.closest('button');
+      if (!btn) return;
 
-        // --- Editar ---
-        if (btn.dataset.edit) {
-          const id = btn.dataset.edit;
-          try {
-            const data = await apiFetch(`/api/products/${id}`);
-            const p = data.product ?? data;
+      // --- Editar ---
+      if (btn.dataset.edit) {
+        const id = btn.dataset.edit;
+        try {
+          const p = await apiFetch(`${API_BASE}/api/products/${id}`);
 
-            fId.value        = p.Id ?? id;
-            fCodigo.value    = p.Codigo ?? p.codigo ?? '';
-            fNombre.value    = p.Nombre ?? p.nombre ?? '';
-            fPrecio.value    = Number(p.Precio ?? p.precio ?? 0).toFixed(2);
-            fStock.value     = Number(p.Stock ?? p.stock ?? 0);
-            fActivo.value    = Number(p.Activo ?? p.activo ?? 0);
-            fCategoria.value = p.Categoria ?? p.categoria ?? '';
-            fMaterial.value  = p.Material ?? p.material ?? '';
-            fImagen.value    = p.ImagenUrl ?? p.imagenurl ?? p.imagenUrl ?? '';
+          fId.value        = p.Id ?? id;
+          fCodigo.value    = p.Codigo ?? p.codigo ?? '';
+          fNombre.value    = p.Nombre ?? p.nombre ?? '';
+          fPrecio.value    = Number(p.Precio ?? p.precio ?? 0).toFixed(2);
+          fStock.value     = Number(p.Stock ?? p.stock ?? 0);
+          fActivo.value    = Number(p.Activo ?? p.activo ?? 0);
+          fCategoria.value = p.Categoria ?? p.categoria ?? '';
+          fMaterial.value  = p.Material ?? p.material ?? '';
+          fImagen.value    = p.ImagenUrl ?? p.imagenurl ?? p.imagenUrl ?? '';
 
-            modalTitle.textContent = 'Editar producto';
-            window.jQuery?.('#modalProducto').modal('show');
-          } catch (err) {
-            alert(err.message || 'No se pudo cargar el producto');
-          }
+          modalTitle.textContent = 'Editar producto';
+          window.jQuery?.('#modalProducto').modal('show');
+        } catch (err) {
+          alert(err.message || 'No se pudo cargar el producto');
         }
+      }
 
-        // --- Eliminar ---
-        if (btn.dataset.del) {
-          const id = btn.dataset.del;
-          if (!confirm('¿Eliminar producto #' + id + '?')) return;
-          try {
-            await apiFetch(`/api/products/${id}`, { method: 'DELETE' });
-            await loadProductos();
-          } catch (err) {
-            alert(err.message || 'Error al eliminar');
-          }
+      // --- Eliminar ---
+      if (btn.dataset.del) {
+        const id = btn.dataset.del;
+        if (!confirm('¿Eliminar producto #' + id + '?')) return;
+        try {
+          await apiFetch(`${API_BASE}/api/products/${id}`, { method: 'DELETE' });
+          await loadProductos();
+        } catch (err) {
+          alert(err.message || 'Error al eliminar');
         }
-      });
-  }
+      }
+    });
 
   // ========= GUARDAR (crear/actualizar) =========
-  frm?.addEventListener('submit', async (ev) => {
+  frm.addEventListener('submit', async (ev) => {
     ev.preventDefault();
-
-    if (!isAdminDashboard) {
-      alert('No tienes permisos para modificar productos.');
-      return;
-    }
 
     const precio = parseFloat(fPrecio.value || '0');
     const stock  = parseInt(fStock.value || '0', 10);
@@ -2384,7 +1874,7 @@
     };
 
     const id = fId.value.trim();
-    const url = id ? `/api/products/${id}` : '/api/products';
+    const url = id ? `${API_BASE}/api/products/${id}` : `${API_BASE}/api/products`;
     const method = id ? 'PUT' : 'POST';
 
     try {

@@ -44,17 +44,13 @@ switch ((int)$u['rol_id']) {
 // token simple (si quieres algo más fuerte, crea tabla sesiones)
 $token = bin2hex(random_bytes(16));
 
-$response = [
+echo json_encode([
   'ok' => true,
   'token' => $token,
   'user' => [
-    'id'       => (int) $u['usuario_id'],
-    'nombre'   => $u['nombre'],
-    'email'    => $u['email'],
-    'role'     => $role,
-    'role_id'  => (int) $u['rol_id'],
-    'estado'   => (int) $u['estado'],
-  ],
-];
-
-echo json_encode($response, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    'id'     => (int)$u['usuario_id'],
+    'nombre' => $u['nombre'],
+    'email'  => $u['email'],
+    'role'   => $role,
+  ]
+]);

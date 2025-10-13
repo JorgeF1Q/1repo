@@ -266,7 +266,7 @@ function map_product_row(array $row, array $productSchema, ?array $imageRow = nu
 
     $imageUrl = null;
     if ($imageRow) {
-        $imageUrl = build_data_url($imageRow['mime'] ?? null, $imageRow['__blob'] ?? null, $imageRow['url'] ?? null);
+        $imageUrl = build_data_url($imageRow['mime'] ?? null, $imageRow['blob'] ?? null, $imageRow['url'] ?? null);
     }
     if (!$imageUrl && $imageKey && !empty($row[$imageKey])) {
         $imageUrl = (string) $row[$imageKey];
@@ -305,7 +305,7 @@ function fetch_product_row(PDO $pdo, array $productSchema, array $imageSchema, i
 
     $imageRow = null;
     if (!empty($imageSchema['table'])) {
-        $sqlImg = 'SELECT ' . $imageSchema['id'] . ' AS imagen_id, ' . $imageSchema['url'] . ' AS url, ' . $imageSchema['blob'] . ' AS __blob, ' . $imageSchema['mime'] . ' AS mime
+        $sqlImg = 'SELECT ' . $imageSchema['id'] . ' AS imagen_id, ' . $imageSchema['url'] . ' AS url, ' . $imageSchema['blob'] . ' AS blob, ' . $imageSchema['mime'] . ' AS mime
                    FROM ' . $imageSchema['table'] . '
                    WHERE ' . $imageSchema['product_fk'] . ' = :id
                    ORDER BY ' . $imageSchema['id'] . ' ASC
@@ -347,7 +347,7 @@ function fetch_products(PDO $pdo, array $productSchema, array $imageSchema): arr
             $placeholders[] = $ph;
             $params[$ph] = $value;
         }
-        $sqlImg = 'SELECT ' . $imageSchema['product_fk'] . ' AS product_id, ' . $imageSchema['id'] . ' AS imagen_id, ' . $imageSchema['url'] . ' AS url, ' . $imageSchema['blob'] . ' AS __blob, ' . $imageSchema['mime'] . ' AS mime
+        $sqlImg = 'SELECT ' . $imageSchema['product_fk'] . ' AS product_id, ' . $imageSchema['id'] . ' AS imagen_id, ' . $imageSchema['url'] . ' AS url, ' . $imageSchema['blob'] . ' AS blob, ' . $imageSchema['mime'] . ' AS mime
                    FROM ' . $imageSchema['table'];
         if ($placeholders) {
             $sqlImg .= ' WHERE ' . $imageSchema['product_fk'] . ' IN (' . implode(', ', $placeholders) . ')';

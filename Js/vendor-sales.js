@@ -563,8 +563,15 @@ ordersStatusCheckboxes.forEach(checkbox => {
         selected.add(normalizeStatus(box.value));
       }
     });
+    if (!selected.size) {
+      DEFAULT_ORDER_STATUSES.forEach(status => selected.add(status));
+      ordersStatusCheckboxes.forEach(box => {
+        box.checked = selected.has(normalizeStatusValue(box.value));
+      });
+    }
     ordersState.statusFilters = selected;
     renderOrders();
+    loadPedidos({ showLoader: true });
   });
 });
 
@@ -584,6 +591,7 @@ if (ordersClearBtn) {
       box.checked = ordersState.statusFilters.has(normalizeStatus(box.value));
     });
     renderOrders();
+    loadPedidos({ showLoader: true });
   });
 }
 

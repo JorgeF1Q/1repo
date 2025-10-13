@@ -1,4 +1,8 @@
-const API_BASE = 'https://joyeria-full-stack-production.up.railway.app'; // ✅
+const API_BASE = '';
+const REMOTE_BASE = 'https://joyeria-full-stack-production.up.railway.app';
+const PRODUCTS_ENDPOINT = '/api/products.php';
+const PRODUCT_IMAGE_ENDPOINT = '/api/product-image.php';
+const ORDERS_ENDPOINT = '/api/orders.php';
 
 /* ====== Guardas de sesión ====== */
 function normalizeRoleValue(rawRole) {
@@ -57,10 +61,32 @@ const fileInput  = document.getElementById('fileInput');
 const imgPreview = document.getElementById('imgPreview');
 
 /* ====== Helpers HTTP ====== */
+function resolveApiPath(path) {
+  if (!path) return path;
+  if (path.startsWith('http')) return path;
+  if (path.startsWith('/api/products/')) {
+    const id = path.slice('/api/products/'.length).replace(/\/?$/, '');
+    if (id) {
+      return `${PRODUCTS_ENDPOINT}?id=${encodeURIComponent(id)}`;
+    }
+    return PRODUCTS_ENDPOINT;
+  }
+  if (path === '/api/products') {
+    return PRODUCTS_ENDPOINT;
+  }
+  if (path.startsWith('/api/orders')) {
+    return ORDERS_ENDPOINT + path.slice('/api/orders'.length);
+  }
+  return path;
+}
+
 async function apiFetch(path, options = {}) {
-  const res = await fetch(`${API_BASE}${path}`, options);
+  const url = resolveApiPath(path);
+  const res = await fetch(url, options);
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || data.message || `HTTP ${res.status}`);
+  if (!res.ok || data.ok === false) {
+    throw new Error(data.error || data.message || `HTTP ${res.status}`);
+  }
   return data;
 }
 
@@ -831,8 +857,24 @@ if (ordersReloadBtn) {
 }
 
 async function loadProductos() {
-  const list = await apiFetch('/api/products'); // ✅ absoluto
-  $tbody.innerHTML = list.map(rowHTML).join('');
+  try {
+    const data = await apiFetch('/api/products');
+    const list = Array.isArray(data)
+      ? data
+      : Array.isArray(data.products)
+        ? data.products
+        : [];
+    if (!$tbody) return;
+    if (!list.length) {
+      $tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-3">Sin productos registrados.</td></tr>';
+      return;
+    }
+    $tbody.innerHTML = list.map(rowHTML).join('');
+  } catch (err) {
+    if ($tbody) {
+      $tbody.innerHTML = `<tr><td colspan="7" class="text-center text-danger py-3">${err.message}</td></tr>`;
+    }
+  }
 }
 loadProductos();
 
@@ -878,8 +920,11 @@ $frm.addEventListener('submit', async (e) => {
     body: JSON.stringify(payload)
   };
 
-  const path = id ? `/api/products/${id}` : '/api/products';
-  await apiFetch(path, opts); // ✅ absoluto + manejo de error
+  const path = id
+    ? `${PRODUCTS_ENDPOINT}?id=${encodeURIComponent(id)}`
+    : PRODUCTS_ENDPOINT;
+
+  await apiFetch(path, opts);
   $modal.modal('hide');
   await loadProductos();
 });
@@ -892,7 +937,8 @@ $tbody.addEventListener('click', async (e) => {
 
   if (e.target.classList.contains('btn-edit')) {
     document.getElementById('modalTitle').textContent = 'Editar producto';
-    const p = await apiFetch(`/api/products/${id}`); // ✅
+    const data = await apiFetch(`${PRODUCTS_ENDPOINT}?id=${encodeURIComponent(id)}`);
+    const p = data.product ?? data;
 
     document.getElementById('p_id').value        = p.Id;
     document.getElementById('p_codigo').value    = p.Codigo || '';
@@ -917,7 +963,7 @@ $tbody.addEventListener('click', async (e) => {
 
   if (e.target.classList.contains('btn-del')) {
     if (!confirm('¿Borrar este producto?')) return;
-    await apiFetch(`/api/products/${id}`, {
+    await apiFetch(`${PRODUCTS_ENDPOINT}?id=${encodeURIComponent(id)}`, {
       method: 'DELETE',
       headers: { 'Authorization': `Bearer ${token}` }
     }); // ✅
@@ -977,9 +1023,10 @@ async function handleFile(file) {
 
   try {
     const formData = new FormData();
+    formData.append('product_id', productId);
     formData.append('file', file);
 
-    const res = await fetch(`${API_BASE}/api/products/${productId}/image`, { // ✅
+    const res = await fetch(PRODUCT_IMAGE_ENDPOINT, {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${token}` },
       body: formData

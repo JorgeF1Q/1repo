@@ -2156,7 +2156,9 @@
   <script type="module" src="Js/settings.js"></script>
   <script type="module">
   // ======= CONFIG API =======
-  const API_BASE = 'https://joyeria-full-stack-production.up.railway.app';
+  const API_BASE = '';
+  const PRODUCTS_ENDPOINT = '/api/products.php';
+  const PRODUCT_IMAGE_ENDPOINT = '/api/product-image.php';
 
   // ======= Auth helpers =======
   const TOKEN_KEYS = ['auth_token', 'token', 'jwt', 'api_key'];
@@ -2177,9 +2179,24 @@
     }
     return h;
   }
+  function resolveApiPath(path) {
+    if (!path) return path;
+    if (path.startsWith('http')) return path;
+    if (path.startsWith('/api/products/')) {
+      const id = path.slice('/api/products/'.length).replace(/\/?$/, '');
+      if (id) return `${PRODUCTS_ENDPOINT}?id=${encodeURIComponent(id)}`;
+      return PRODUCTS_ENDPOINT;
+    }
+    if (path === '/api/products') {
+      return PRODUCTS_ENDPOINT;
+    }
+    return path;
+  }
+
   async function apiFetch(url, opts = {}) {
     const headers = authHeaders(opts.headers || {});
-    const res = await fetch(url, { ...opts, headers });
+    const resolved = resolveApiPath(url);
+    const res = await fetch(resolved, { ...opts, headers });
     const text = await res.text().catch(()=> '');
     if (!res.ok) {
       // intenta parsear json para mensaje fino
@@ -2220,14 +2237,19 @@
     `;
     try {
       // si este GET también requiere token, ya usamos apiFetch
-      const data = await apiFetch(`${API_BASE}/api/products`);
-      if (!Array.isArray(data) || data.length === 0) {
+      const data = await apiFetch('/api/products');
+      const list = Array.isArray(data)
+        ? data
+        : Array.isArray(data.products)
+          ? data.products
+          : [];
+      if (!list.length) {
         tblBody.innerHTML = `
           <tr><td colspan="7" class="text-center text-muted">Sin productos.</td></tr>
         `;
         return;
       }
-      tblBody.innerHTML = data.map(p => {
+      tblBody.innerHTML = list.map(p => {
         const id     = p.Id ?? p.id;
         const codigo = p.Codigo ?? p.codigo ?? '';
         const nombre = p.Nombre ?? p.nombre ?? '';
@@ -2291,7 +2313,8 @@
         if (btn.dataset.edit) {
           const id = btn.dataset.edit;
           try {
-            const p = await apiFetch(`${API_BASE}/api/products/${id}`);
+            const data = await apiFetch(`/api/products/${id}`);
+            const p = data.product ?? data;
 
             fId.value        = p.Id ?? id;
             fCodigo.value    = p.Codigo ?? p.codigo ?? '';
@@ -2315,7 +2338,7 @@
           const id = btn.dataset.del;
           if (!confirm('¿Eliminar producto #' + id + '?')) return;
           try {
-            await apiFetch(`${API_BASE}/api/products/${id}`, { method: 'DELETE' });
+            await apiFetch(`/api/products/${id}`, { method: 'DELETE' });
             await loadProductos();
           } catch (err) {
             alert(err.message || 'Error al eliminar');
@@ -2361,7 +2384,7 @@
     };
 
     const id = fId.value.trim();
-    const url = id ? `${API_BASE}/api/products/${id}` : `${API_BASE}/api/products`;
+    const url = id ? `/api/products/${id}` : '/api/products';
     const method = id ? 'PUT' : 'POST';
 
     try {

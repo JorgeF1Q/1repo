@@ -98,9 +98,16 @@ function renderProducts(list) {
 
     // Prefija imagen si viene relativa ("/uploads/...") o "img/..."
     const raw = p.ImagenUrl || '';
-    const imgSrc = raw.startsWith('http')
-      ? raw
-      : `${API_BASE}${raw.startsWith('/') ? '' : '/'}${raw}`;
+    let imgSrc = '';
+    if (raw.startsWith('data:')) {
+      imgSrc = raw;
+    } else if (raw.startsWith('http')) {
+      imgSrc = raw;
+    } else if (raw) {
+      imgSrc = `${API_BASE}${raw.startsWith('/') ? '' : '/'}${raw}`;
+    } else {
+      imgSrc = 'https://via.placeholder.com/320x320?text=Producto';
+    }
 
     const stockBadge = agotado
       ? `<span class="badge badge-danger">Agotado</span>`

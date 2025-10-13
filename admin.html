@@ -782,47 +782,87 @@
     
     <script>
 (function guardAdmin() {
-  // token y role guardados por Js/auth.js
-  const token = localStorage.getItem('token');
-  let role = localStorage.getItem('role');
+  const ALLOWED_ROLES = new Set(['admin', 'vendedor']);
 
-  // fallback: extraer rol del JWT si existe
-  function parseJwt(t){
-    try{
-      const base = t.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');
+  function normalizeRoleValue(rawRole) {
+    if (rawRole === null || rawRole === undefined) return '';
+
+    const numericRole = Number(rawRole);
+    if (!Number.isNaN(numericRole) && Number.isFinite(numericRole)) {
+      if (numericRole === 1) return 'admin';
+      if (numericRole === 2) return 'vendedor';
+    }
+
+    const text = rawRole.toString().trim().toLowerCase();
+    if (!text) return '';
+
+    if (['1', 'admin', 'administrator', 'administrador'].includes(text)) {
+      return 'admin';
+    }
+    if (['2', 'vendedor', 'seller', 'ventas', 'salesperson', 'sales'].includes(text)) {
+      return 'vendedor';
+    }
+    return text;
+  }
+
+  function parseJwt(t) {
+    try {
+      const base = t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
       const json = decodeURIComponent(Array.prototype.map.call(atob(base), c =>
         '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
       ).join(''));
       return JSON.parse(json);
-    }catch{return null;}
+    } catch {
+      return null;
+    }
   }
 
-  if (!role && token) {
-    const p = parseJwt(token);
-    role = p?.role ?? p?.Role ?? p?.rol ?? p?.Rol ?? p?.perfil ?? null;
-    if (role) localStorage.setItem('role', role);
+  const token = localStorage.getItem('token');
+  const storedRole = localStorage.getItem('role');
+  const storedRawRole = localStorage.getItem('role_raw');
+
+  let normalizedRole = normalizeRoleValue(storedRole ?? storedRawRole);
+
+  if ((!normalizedRole || !ALLOWED_ROLES.has(normalizedRole)) && token) {
+    const payload = parseJwt(token);
+    const jwtRole = payload?.role ?? payload?.Role ?? payload?.rol ?? payload?.Rol ?? payload?.perfil ?? null;
+    if (jwtRole !== null && jwtRole !== undefined) {
+      localStorage.setItem('role_raw', jwtRole);
+      normalizedRole = normalizeRoleValue(jwtRole);
+    }
   }
 
-  // si no hay token o no es admin -> al login
-  if (!token || role !== 'admin') {
+  if (!token || !ALLOWED_ROLES.has(normalizedRole)) {
     localStorage.removeItem('token');
     localStorage.removeItem('role');
+    localStorage.removeItem('role_raw');
     localStorage.removeItem('name');
     localStorage.removeItem('email');
     window.location.replace('login.html');
     return;
   }
 
-  // pinta nombre/email si están guardados
+  const normalized = normalizedRole || 'admin';
+  localStorage.setItem('role', normalized);
+  window.__DASHBOARD_ROLE = normalized;
+
+  if (document.body) {
+    document.body.setAttribute('data-role', normalized);
+    document.body.classList.add(`role-${normalized}`);
+  }
+
+  const isAdmin = normalized === 'admin';
   const nameEl = document.getElementById('adminName');
   const emailEl = document.getElementById('adminEmail');
-  if (nameEl)  nameEl.textContent  = localStorage.getItem('name')  || nameEl.textContent;
-  if (emailEl) emailEl.textContent = localStorage.getItem('email') || emailEl.textContent;
+  const storedName = localStorage.getItem('name');
+  const storedEmail = localStorage.getItem('email');
+  if (nameEl && storedName) nameEl.textContent = storedName;
+  if (emailEl && storedEmail) emailEl.textContent = storedEmail;
 
   const badge = document.getElementById('sessionBadge');
-  if (badge) badge.textContent = 'Sesión activa (admin)';
+  if (badge) badge.textContent = isAdmin ? 'Sesión activa (admin)' : 'Sesión activa (ventas)';
 })();
-</script>
+    </script>
 
     
     
@@ -1537,26 +1577,69 @@
     const toggleBtn = document.getElementById('menuToggle');
     const navButtons = document.querySelectorAll('.nav-btn');
     const sections = document.querySelectorAll('.content-section');
+    const dashboardRole = window.__DASHBOARD_ROLE || 'admin';
+    const isVendorView = dashboardRole === 'vendedor';
+    const vendorAllowedSections = new Set(['sales', 'products']);
+
+    function isSectionAllowed(sectionName) {
+      if (!isVendorView) return true;
+      return vendorAllowedSections.has(sectionName);
+    }
 
     function showSection(sectionName) {
+      const desired = sectionName && isSectionAllowed(sectionName)
+        ? sectionName
+        : (isVendorView ? 'sales' : 'dashboard');
+
       navButtons.forEach(btn => {
-        const matches = btn.dataset.section === sectionName;
+        const matches = btn.dataset.section === desired;
         btn.classList.toggle('active', matches);
       });
 
       sections.forEach(section => {
-        section.classList.toggle('active', section.id === `section-${sectionName}`);
+        const sectionKey = section.id.replace('section-', '');
+        const shouldDisplay = sectionKey === desired;
+        section.classList.toggle('active', shouldDisplay);
+        if (isVendorView) {
+          section.classList.toggle('d-none', !isSectionAllowed(sectionKey));
+        }
       });
+
+      if (location.hash.replace('#', '') !== desired) {
+        if (typeof history.replaceState === 'function') {
+          history.replaceState({}, '', `#${desired}`);
+        } else {
+          location.hash = `#${desired}`;
+        }
+      }
     }
 
     navButtons.forEach(btn => {
+      const sectionName = btn.dataset.section;
+      if (!isSectionAllowed(sectionName)) {
+        btn.classList.add('d-none');
+        btn.setAttribute('aria-hidden', 'true');
+        btn.tabIndex = -1;
+        return;
+      }
+
       btn.addEventListener('click', () => {
-        showSection(btn.dataset.section);
+        showSection(sectionName);
         if (window.innerWidth < 992) {
           layout.classList.add('sidebar-hidden');
         }
       });
     });
+
+    if (isVendorView) {
+      sections.forEach(section => {
+        const sectionKey = section.id.replace('section-', '');
+        if (!isSectionAllowed(sectionKey)) {
+          section.classList.remove('active');
+          section.classList.add('d-none');
+        }
+      });
+    }
 
     toggleBtn.addEventListener('click', () => {
       layout.classList.toggle('sidebar-hidden');
@@ -1582,6 +1665,12 @@
     if (storedName) {
       document.getElementById('adminName').textContent = storedName;
     }
+
+    const hashSection = location.hash.replace('#', '');
+    const initialSection = hashSection && isSectionAllowed(hashSection)
+      ? hashSection
+      : (isVendorView ? 'sales' : 'dashboard');
+    showSection(initialSection);
   </script>
 
   <script>
@@ -2003,6 +2092,7 @@
       localStorage.removeItem(k);
       sessionStorage.removeItem(k);
     }
+    ['role', 'role_raw', 'name', 'email'].forEach(key => localStorage.removeItem(key));
   }
   // Decodificar payload de JWT sin librerías
   function parseJwt(token) {
@@ -2066,7 +2156,9 @@
   <script type="module" src="Js/settings.js"></script>
   <script type="module">
   // ======= CONFIG API =======
-  const API_BASE = 'https://joyeria-full-stack-production.up.railway.app';
+  const API_BASE = '';
+  const PRODUCTS_ENDPOINT = '/api/products.php';
+  const PRODUCT_IMAGE_ENDPOINT = '/api/product-image.php';
 
   // ======= Auth helpers =======
   const TOKEN_KEYS = ['auth_token', 'token', 'jwt', 'api_key'];
@@ -2087,9 +2179,24 @@
     }
     return h;
   }
+  function resolveApiPath(path) {
+    if (!path) return path;
+    if (path.startsWith('http')) return path;
+    if (path.startsWith('/api/products/')) {
+      const id = path.slice('/api/products/'.length).replace(/\/?$/, '');
+      if (id) return `${PRODUCTS_ENDPOINT}?id=${encodeURIComponent(id)}`;
+      return PRODUCTS_ENDPOINT;
+    }
+    if (path === '/api/products') {
+      return PRODUCTS_ENDPOINT;
+    }
+    return path;
+  }
+
   async function apiFetch(url, opts = {}) {
     const headers = authHeaders(opts.headers || {});
-    const res = await fetch(url, { ...opts, headers });
+    const resolved = resolveApiPath(url);
+    const res = await fetch(resolved, { ...opts, headers });
     const text = await res.text().catch(()=> '');
     if (!res.ok) {
       // intenta parsear json para mensaje fino
@@ -2109,6 +2216,8 @@
   const tblBody    = $('#tblProductos tbody');
   const frm        = $('#frmProducto');
   const modalTitle = $('#modalTitle');
+  const dashboardRole = window.__DASHBOARD_ROLE || 'admin';
+  const isAdminDashboard = dashboardRole === 'admin';
 
   // Campos modal
   const fId        = $('#p_id');
@@ -2128,20 +2237,31 @@
     `;
     try {
       // si este GET también requiere token, ya usamos apiFetch
-      const data = await apiFetch(`${API_BASE}/api/products`);
-      if (!Array.isArray(data) || data.length === 0) {
+      const data = await apiFetch('/api/products');
+      const list = Array.isArray(data)
+        ? data
+        : Array.isArray(data.products)
+          ? data.products
+          : [];
+      if (!list.length) {
         tblBody.innerHTML = `
           <tr><td colspan="7" class="text-center text-muted">Sin productos.</td></tr>
         `;
         return;
       }
-      tblBody.innerHTML = data.map(p => {
+      tblBody.innerHTML = list.map(p => {
         const id     = p.Id ?? p.id;
         const codigo = p.Codigo ?? p.codigo ?? '';
         const nombre = p.Nombre ?? p.nombre ?? '';
         const precio = Number(p.Precio ?? p.precio ?? 0);
         const stock  = Number(p.Stock ?? p.stock ?? 0);
         const activo = Number(p.Activo ?? p.activo ?? 0);
+        const actionsHtml = isAdminDashboard
+          ? `
+              <button class="btn btn-sm btn-outline-primary" data-edit="${id}">Editar</button>
+              <button class="btn btn-sm btn-outline-danger" data-del="${id}">Eliminar</button>
+            `
+          : '<span class="text-muted">Solo lectura</span>';
         return `
           <tr data-id="${id}">
             <td>${id}</td>
@@ -2154,10 +2274,7 @@
                 ${activo ? 'Sí' : 'No'}
               </span>
             </td>
-            <td class="text-right">
-              <button class="btn btn-sm btn-outline-primary" data-edit="${id}">Editar</button>
-              <button class="btn btn-sm btn-outline-danger"  data-del="${id}">Eliminar</button>
-            </td>
+            <td class="text-right">${actionsHtml}</td>
           </tr>
         `;
       }).join('');
@@ -2171,59 +2288,73 @@
     }
   }
 
-  // ========= NUEVO =========
-  document.querySelector('[data-target="#modalProducto"]')
-    ?.addEventListener('click', () => {
+  const newProductBtn = document.querySelector('[data-target="#modalProducto"]');
+  if (!isAdminDashboard && newProductBtn) {
+    newProductBtn.classList.add('d-none');
+    newProductBtn.setAttribute('aria-hidden', 'true');
+    newProductBtn.tabIndex = -1;
+  }
+
+  if (isAdminDashboard) {
+    // ========= NUEVO =========
+    newProductBtn?.addEventListener('click', () => {
       frm.reset();
       fId.value = '';
       modalTitle.textContent = 'Nuevo producto';
     });
 
-  // ========= EDITAR / ELIMINAR =========
-  document.getElementById('section-products')
-    .addEventListener('click', async (e) => {
-      const btn = e.target.closest('button');
-      if (!btn) return;
+    // ========= EDITAR / ELIMINAR =========
+    document.getElementById('section-products')
+      ?.addEventListener('click', async (e) => {
+        const btn = e.target.closest('button');
+        if (!btn) return;
 
-      // --- Editar ---
-      if (btn.dataset.edit) {
-        const id = btn.dataset.edit;
-        try {
-          const p = await apiFetch(`${API_BASE}/api/products/${id}`);
+        // --- Editar ---
+        if (btn.dataset.edit) {
+          const id = btn.dataset.edit;
+          try {
+            const data = await apiFetch(`/api/products/${id}`);
+            const p = data.product ?? data;
 
-          fId.value        = p.Id ?? id;
-          fCodigo.value    = p.Codigo ?? p.codigo ?? '';
-          fNombre.value    = p.Nombre ?? p.nombre ?? '';
-          fPrecio.value    = Number(p.Precio ?? p.precio ?? 0).toFixed(2);
-          fStock.value     = Number(p.Stock ?? p.stock ?? 0);
-          fActivo.value    = Number(p.Activo ?? p.activo ?? 0);
-          fCategoria.value = p.Categoria ?? p.categoria ?? '';
-          fMaterial.value  = p.Material ?? p.material ?? '';
-          fImagen.value    = p.ImagenUrl ?? p.imagenurl ?? p.imagenUrl ?? '';
+            fId.value        = p.Id ?? id;
+            fCodigo.value    = p.Codigo ?? p.codigo ?? '';
+            fNombre.value    = p.Nombre ?? p.nombre ?? '';
+            fPrecio.value    = Number(p.Precio ?? p.precio ?? 0).toFixed(2);
+            fStock.value     = Number(p.Stock ?? p.stock ?? 0);
+            fActivo.value    = Number(p.Activo ?? p.activo ?? 0);
+            fCategoria.value = p.Categoria ?? p.categoria ?? '';
+            fMaterial.value  = p.Material ?? p.material ?? '';
+            fImagen.value    = p.ImagenUrl ?? p.imagenurl ?? p.imagenUrl ?? '';
 
-          modalTitle.textContent = 'Editar producto';
-          window.jQuery?.('#modalProducto').modal('show');
-        } catch (err) {
-          alert(err.message || 'No se pudo cargar el producto');
+            modalTitle.textContent = 'Editar producto';
+            window.jQuery?.('#modalProducto').modal('show');
+          } catch (err) {
+            alert(err.message || 'No se pudo cargar el producto');
+          }
         }
-      }
 
-      // --- Eliminar ---
-      if (btn.dataset.del) {
-        const id = btn.dataset.del;
-        if (!confirm('¿Eliminar producto #' + id + '?')) return;
-        try {
-          await apiFetch(`${API_BASE}/api/products/${id}`, { method: 'DELETE' });
-          await loadProductos();
-        } catch (err) {
-          alert(err.message || 'Error al eliminar');
+        // --- Eliminar ---
+        if (btn.dataset.del) {
+          const id = btn.dataset.del;
+          if (!confirm('¿Eliminar producto #' + id + '?')) return;
+          try {
+            await apiFetch(`/api/products/${id}`, { method: 'DELETE' });
+            await loadProductos();
+          } catch (err) {
+            alert(err.message || 'Error al eliminar');
+          }
         }
-      }
-    });
+      });
+  }
 
   // ========= GUARDAR (crear/actualizar) =========
-  frm.addEventListener('submit', async (ev) => {
+  frm?.addEventListener('submit', async (ev) => {
     ev.preventDefault();
+
+    if (!isAdminDashboard) {
+      alert('No tienes permisos para modificar productos.');
+      return;
+    }
 
     const precio = parseFloat(fPrecio.value || '0');
     const stock  = parseInt(fStock.value || '0', 10);
@@ -2253,7 +2384,7 @@
     };
 
     const id = fId.value.trim();
-    const url = id ? `${API_BASE}/api/products/${id}` : `${API_BASE}/api/products`;
+    const url = id ? `/api/products/${id}` : '/api/products';
     const method = id ? 'PUT' : 'POST';
 
     try {

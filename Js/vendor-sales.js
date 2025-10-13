@@ -92,6 +92,161 @@ const ordersState = {
 let currentOrderDetail = null;
 let ordersAlertTimer = null;
 
+class ApiError extends Error {
+  constructor(message, status, payload) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+    this.payload = payload;
+  }
+}
+
+function buildAuthHeaders(extra = {}) {
+  const headers = { Accept: 'application/json', ...extra };
+  if (token) {
+    const bearer = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
+    if (!headers.Authorization) {
+      headers.Authorization = bearer;
+    }
+  }
+  return headers;
+}
+
+function buildOrdersUrl(path = '', params) {
+  const url = new URL(`${API_BASE}/api/orders${path}`);
+  if (params && typeof params === 'object') {
+    Object.entries(params).forEach(([key, value]) => {
+      if (value === undefined || value === null || value === '') return;
+      if (Array.isArray(value)) {
+        if (value.length) {
+          url.searchParams.set(key, value.join(','));
+        }
+      } else {
+        url.searchParams.set(key, value);
+      }
+    });
+  }
+  return url;
+}
+
+function parseOrdersArray(payload) {
+  if (!payload) return [];
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload.orders)) return payload.orders;
+  if (Array.isArray(payload.data)) return payload.data;
+  if (payload.data && Array.isArray(payload.data.data)) return payload.data.data;
+  if (payload.data && Array.isArray(payload.data.items)) return payload.data.items;
+  if (payload.data && Array.isArray(payload.data.results)) return payload.data.results;
+  if (payload.data && Array.isArray(payload.data.rows)) return payload.data.rows;
+  if (payload.data && Array.isArray(payload.data.records)) return payload.data.records;
+  if (Array.isArray(payload.results)) return payload.results;
+  if (Array.isArray(payload.items)) return payload.items;
+  if (payload.data && Array.isArray(payload.data.orders)) return payload.data.orders;
+  if (payload.data && payload.data.orders && typeof payload.data.orders === 'object' && !Array.isArray(payload.data.orders)) {
+    const values = Object.values(payload.data.orders).filter(Boolean);
+    if (values.length) return values;
+  }
+  if (payload.items && Array.isArray(payload.items.data)) return payload.items.data;
+  if (payload.items && payload.items.data && typeof payload.items.data === 'object' && !Array.isArray(payload.items.data)) {
+    const values = Object.values(payload.items.data).filter(Boolean);
+    if (values.length) return values;
+  }
+  if (payload.orders && typeof payload.orders === 'object' && !Array.isArray(payload.orders)) {
+    const values = Object.values(payload.orders).filter(Boolean);
+    if (values.length) return values;
+  }
+  if (Array.isArray(payload.records)) return payload.records;
+  if (payload.rows && Array.isArray(payload.rows)) return payload.rows;
+  return [];
+}
+
+function extractOrderPayload(payload) {
+  if (!payload || typeof payload !== 'object') return null;
+  if (payload.order && typeof payload.order === 'object') return payload.order;
+
+  const dataProp = payload.data;
+  if (Array.isArray(dataProp) && dataProp.length) {
+    return dataProp[0];
+  }
+  if (dataProp && typeof dataProp === 'object') {
+    if (dataProp.order && typeof dataProp.order === 'object') {
+      return dataProp.order;
+    }
+    if (dataProp.id !== undefined) {
+      return dataProp;
+    }
+    if (Array.isArray(dataProp.items) && dataProp.items.length) {
+      return dataProp.items[0];
+    }
+    if (Array.isArray(dataProp.results) && dataProp.results.length) {
+      return dataProp.results[0];
+    }
+    if (Array.isArray(dataProp.orders) && dataProp.orders.length) {
+      return dataProp.orders[0];
+    }
+    if (dataProp.orders && typeof dataProp.orders === 'object' && !Array.isArray(dataProp.orders)) {
+      const values = Object.values(dataProp.orders).filter(value => value && typeof value === 'object');
+      if (values.length) return values[0];
+    }
+    if (Array.isArray(dataProp.data) && dataProp.data.length) {
+      return dataProp.data[0];
+    }
+    if (Array.isArray(dataProp.rows) && dataProp.rows.length) {
+      return dataProp.rows[0];
+    }
+    if (Array.isArray(dataProp.records) && dataProp.records.length) {
+      return dataProp.records[0];
+    }
+    if (dataProp.result && typeof dataProp.result === 'object') {
+      return dataProp.result;
+    }
+  }
+
+  if (payload.result && typeof payload.result === 'object') return payload.result;
+  if (Array.isArray(payload.results) && payload.results.length) return payload.results[0];
+  if (Array.isArray(payload.items) && payload.items.length) return payload.items[0];
+  if (payload.items && typeof payload.items === 'object' && !Array.isArray(payload.items)) {
+    const values = Object.values(payload.items).filter(value => value && typeof value === 'object');
+    if (values.length) return values[0];
+  }
+  if (Array.isArray(payload.orders) && payload.orders.length) return payload.orders[0];
+  if (payload.orders && typeof payload.orders === 'object' && !Array.isArray(payload.orders)) {
+    const values = Object.values(payload.orders).filter(value => value && typeof value === 'object');
+    if (values.length) return values[0];
+  }
+  if (Array.isArray(payload.rows) && payload.rows.length) return payload.rows[0];
+  if (Array.isArray(payload.records) && payload.records.length) return payload.records[0];
+  if (payload.id !== undefined) return payload;
+
+  const candidates = parseOrdersArray(payload);
+  return candidates.length ? candidates[0] : null;
+}
+
+async function requestRailwayOrders(path = '', { method = 'GET', params, body, headers } = {}) {
+  const url = buildOrdersUrl(path, params);
+  const options = { method, headers: buildAuthHeaders(headers) };
+
+  if (body !== undefined) {
+    if (body instanceof FormData || body instanceof Blob) {
+      options.body = body;
+    } else if (typeof body === 'string') {
+      options.body = body;
+    } else {
+      options.body = JSON.stringify(body);
+      if (!options.headers['Content-Type']) {
+        options.headers['Content-Type'] = 'application/json';
+      }
+    }
+  }
+
+  const res = await fetch(url.toString(), options);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || data.error) {
+    throw new ApiError(data.error || data.message || `No se pudo contactar con el servicio (${res.status})`, res.status, data);
+  }
+  return data;
+}
+
 function escapeHtml(value) {
   if (value === null || value === undefined) return '';
   return String(value)
@@ -520,30 +675,135 @@ function fillOrderModal(order, options = {}) {
 }
 
 async function fetchOrderDetail(orderId) {
+  if (!orderId) {
+    throw new Error('Identificador de pedido no válido.');
+  }
+
+  try {
+    const data = await requestRailwayOrders(`/${encodeURIComponent(orderId)}`, {
+      params: { with: 'items' },
+    });
+    const order = extractOrderPayload(data);
+    if (!order) {
+      throw new ApiError('La respuesta del servicio no incluyó el detalle del pedido.', 502, data);
+    }
+    return normalizeOrderFromApi(order);
+  } catch (primaryError) {
+    console.warn('Fallo la carga de pedidos desde la API principal, intentando con el backend local.', primaryError);
+    try {
+      return await fetchOrderDetailFallback(orderId);
+    } catch (fallbackError) {
+      if (fallbackError && primaryError && fallbackError instanceof Error && primaryError instanceof Error) {
+        fallbackError.message = `${fallbackError.message} (Error remoto: ${primaryError.message})`;
+      }
+      throw fallbackError;
+    }
+  }
+}
+
+async function fetchOrderDetailFallback(orderId) {
   const params = new URLSearchParams({ id: orderId, with: 'items' });
   const res = await fetch(`/api/orders.php?${params.toString()}`, {
-    headers: { 'Accept': 'application/json' },
+    headers: buildAuthHeaders(),
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok || data.error || !data.order) {
+  const order = extractOrderPayload(data);
+  if (!res.ok || data.error || !order) {
     throw new Error(data.error || data.message || 'No se encontró la orden solicitada.');
   }
-  return normalizeOrderFromApi(data.order ?? {});
+  return normalizeOrderFromApi(order);
 }
 
 async function updateOrderStatus(id, payload, { includeItems = false } = {}) {
+  if (!id) {
+    throw new Error('Identificador de pedido no válido.');
+  }
+
+  try {
+    const data = await requestRailwayOrders(`/${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      params: includeItems ? { with: 'items' } : undefined,
+      body: payload,
+    });
+    const order = extractOrderPayload(data);
+    if (!order) {
+      throw new ApiError('La respuesta del servicio no incluyó el pedido actualizado.', 502, data);
+    }
+    return normalizeOrderFromApi(order);
+  } catch (primaryError) {
+    console.warn('Fallo la actualización del pedido en la API principal, intentando con el backend local.', primaryError);
+    try {
+      return await updateOrderStatusFallback(id, payload, { includeItems });
+    } catch (fallbackError) {
+      if (fallbackError && primaryError && fallbackError instanceof Error && primaryError instanceof Error) {
+        fallbackError.message = `${fallbackError.message} (Error remoto: ${primaryError.message})`;
+      }
+      throw fallbackError;
+    }
+  }
+}
+
+async function updateOrderStatusFallback(id, payload, { includeItems = false } = {}) {
   const params = new URLSearchParams();
   if (includeItems) params.set('with', 'items');
-  const res = await fetch(`/api/orders.php?id=${id}${params.toString() ? `&${params.toString()}` : ''}`, {
+  const query = params.toString();
+  const res = await fetch(`/api/orders.php?id=${encodeURIComponent(id)}${query ? `&${query}` : ''}`, {
     method: 'PATCH',
-    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+    headers: buildAuthHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify(payload),
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok || data.error) {
+  const order = extractOrderPayload(data);
+  if (!res.ok || data.error || !order) {
     throw new Error(data.error || data.message || 'No se pudo actualizar el pedido.');
   }
-  return normalizeOrderFromApi(data.order ?? {});
+  return normalizeOrderFromApi(order);
+}
+
+async function fetchOrdersList(filters = {}) {
+  const { statuses = [], search = '', limit = 200 } = filters;
+  try {
+    const data = await requestRailwayOrders('', {
+      params: {
+        status: statuses.length ? statuses.join(',') : undefined,
+        q: search ? search : undefined,
+        limit,
+      },
+    });
+    const orders = parseOrdersArray(data).map(normalizeOrderFromApi);
+    return orders;
+  } catch (primaryError) {
+    console.warn('Fallo la carga de pedidos en la API principal, intentando con el backend local.', primaryError);
+    try {
+      return await fetchOrdersListFallback(filters);
+    } catch (fallbackError) {
+      if (fallbackError && primaryError && fallbackError instanceof Error && primaryError instanceof Error) {
+        fallbackError.message = `${fallbackError.message} (Error remoto: ${primaryError.message})`;
+      }
+      throw fallbackError;
+    }
+  }
+}
+
+async function fetchOrdersListFallback(filters = {}) {
+  const { statuses = [], search = '', limit = 200 } = filters;
+  const params = new URLSearchParams();
+  if (Array.isArray(statuses) && statuses.length) {
+    params.set('status', statuses.join(','));
+  }
+  if (search) {
+    params.set('q', search);
+  }
+  params.set('limit', String(limit));
+
+  const res = await fetch(`/api/orders.php${params.toString() ? `?${params.toString()}` : ''}`, {
+    headers: buildAuthHeaders(),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || data.error) {
+    throw new Error(data.error || data.message || 'No se pudo cargar la lista de pedidos.');
+  }
+  return parseOrdersArray(data).map(normalizeOrderFromApi);
 }
 
 async function openOrderModal(orderId, options = {}) {
@@ -691,26 +951,13 @@ async function loadPedidos({ showLoader = true } = {}) {
   hideOrdersAlert();
 
   try {
-    const params = new URLSearchParams();
-    if (ordersState.statusFilters.size) {
-      params.set('status', Array.from(ordersState.statusFilters).join(','));
-    }
-    if (ordersState.search.trim()) {
-      params.set('q', ordersState.search.trim());
-    }
-    params.set('limit', '200');
-
-    const res = await fetch(`/api/orders.php${params.toString() ? `?${params.toString()}` : ''}`, {
-      headers: { 'Accept': 'application/json' },
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok || data.error) {
-      throw new Error(data.error || data.message || 'No se pudo cargar la lista de pedidos.');
-    }
-    const orders = Array.isArray(data.orders)
-      ? data.orders
-      : (Array.isArray(data.data) ? data.data : []);
-    ordersState.list = orders.map(normalizeOrderFromApi);
+    const filters = {
+      statuses: Array.from(ordersState.statusFilters || []),
+      search: ordersState.search ? ordersState.search.trim() : '',
+      limit: 200,
+    };
+    const orders = await fetchOrdersList(filters);
+    ordersState.list = orders;
     renderOrders();
   } catch (err) {
     console.error(err);
@@ -737,8 +984,15 @@ ordersStatusCheckboxes.forEach(cb => {
         selected.add(value);
       }
     });
+    if (!selected.size) {
+      DEFAULT_ORDER_STATUSES.forEach(status => selected.add(status));
+      ordersStatusCheckboxes.forEach(box => {
+        box.checked = selected.has(normalizeStatusValue(box.value));
+      });
+    }
     ordersState.statusFilters = selected;
     renderOrders();
+    loadPedidos({ showLoader: true });
   });
 });
 
@@ -758,6 +1012,7 @@ if (ordersClearBtn) {
       box.checked = ordersState.statusFilters.has(normalizeStatusValue(box.value));
     });
     renderOrders();
+    loadPedidos({ showLoader: true });
   });
 }
 

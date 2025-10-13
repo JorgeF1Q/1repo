@@ -1,5 +1,3 @@
-const API_BASE = 'https://joyeria-full-stack-production.up.railway.app';
-
 function normalizeRoleValue(rawRole) {
   if (rawRole === null || rawRole === undefined) return '';
 
